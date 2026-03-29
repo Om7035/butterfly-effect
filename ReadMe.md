@@ -95,7 +95,7 @@ By the time the last effects are visible, the opportunity window has closed.
 ```mermaid
 graph TD
     subgraph Ingestion ["📡 DATA INGESTION LAYER"]
-        A[FRED API | SEC EDGAR | GDELT | NewsAPI] --> B[Celery 15-min polls]
+        A["FRED API | SEC EDGAR | GDELT | NewsAPI"] --> B[Celery 15-min polls]
         B --> C[Normalize → Event Schema]
     end
 
@@ -110,7 +110,7 @@ graph TD
     E & F --> KG
 
     subgraph KG ["🕸️ KNOWLEDGE GRAPH (Neo4j)"]
-        G[(Nodes: Events, Metrics, Agents, Sectors)]
+        G[("Nodes: Events, Metrics, Agents, Sectors")]
         G --- H["Schema: edge { strength, latency, CI, evidence }"]
     end
 
@@ -135,9 +135,9 @@ graph TD
 
     subgraph Viz ["📊 VISUALIZATION LAYER"]
         O[Next.js Dashboard]
-        O --> P[Sigma.js ripple map | Cytoscape graph]
-        O --> Q[D3 temporal scrubber | Confidence intervals]
-        O --> R[Evidence panel | Plain-English audit trail]
+        O --> P["Sigma.js ripple map | Cytoscape graph"]
+        O --> Q["D3 temporal scrubber | Confidence intervals"]
+        O --> R["Evidence panel | Plain-English audit trail"]
     end
     
     style KG fill:#f9f,stroke:#333,stroke-width:2px
