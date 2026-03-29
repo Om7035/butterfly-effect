@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="glow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+    </marker>
+    <style>
+      .layer-bg { fill: #1e293b; stroke: #334155; stroke-width: 2px; rx: 12px; filter: url(#glow); }
+      .box-bg { fill: #334155; stroke: #475569; stroke-width: 1px; rx: 6px; }
+      .title { font-family: -apple-system, sans-serif; font-size: 18px; font-weight: 600; fill: #38bdf8; }
+      .text-light { font-family: -apple-system, sans-serif; font-size: 14px; fill: #f8fafc; font-weight: 500;}
+      .text-muted { font-family: -apple-system, sans-serif; font-size: 13px; fill: #94a3b8; }
+      .conn { stroke: #94a3b8; stroke-width: 2px; fill: none; marker-end: url(#arrow); }
+      .sim-a { fill: #064e3b; stroke: #047857; stroke-width: 1px; rx: 6px; filter: url(#glow); }
+      .sim-b { fill: #7f1d1d; stroke: #b91c1c; stroke-width: 1px; rx: 6px; filter: url(#glow); }
+      .diff { fill: #4c1d95; stroke: #7c3aed; stroke-width: 1px; rx: 6px; filter: url(#glow); }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#bg)" rx="16px" />
+
+  <!-- EVENT -->
+  <g transform="translate(250, 40)">
+    <rect width="300" height="40" class="box-bg" filter="url(#glow)"/>
+    <text x="150" y="25" text-anchor="middle" class="text-light">EVENT OCCURS (e.g. Fed Hike)</text>
+  </g>
+
+  <path d="M 400 80 L 400 110" class="conn" />
+
+  <!-- PARALLEL SIM -->
+  <g transform="translate(40, 120)">
+    <rect width="720" height="200" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">⚖️ PARALLEL SIMULATION</text>
+    
+    <!-- Timeline A -->
+    <rect x="80" y="40" width="240" height="140" class="sim-a"/>
+    <text x="200" y="65" text-anchor="middle" class="text-light">TIMELINE A</text>
+    <text x="200" y="85" text-anchor="middle" class="text-muted">t=0: Bond mkts react</text>
+    <text x="200" y="105" text-anchor="middle" class="text-muted">t=6h: Equity starts</text>
+    <text x="200" y="125" text-anchor="middle" class="text-muted">t=24h: Mortgage mvmt</text>
+    <text x="200" y="145" text-anchor="middle" class="text-muted">t=168h: Labor signal</text>
+    
+    <!-- Timeline B -->
+    <rect x="400" y="40" width="240" height="140" class="sim-b"/>
+    <text x="520" y="65" text-anchor="middle" class="text-light">TIMELINE B</text>
+    <text x="520" y="85" text-anchor="middle" class="text-muted">t=0: Flat baseline</text>
+    <text x="520" y="105" text-anchor="middle" class="text-muted">t=6h: Flat baseline</text>
+    <text x="520" y="125" text-anchor="middle" class="text-muted">t=24h: Flat baseline</text>
+    <text x="520" y="145" text-anchor="middle" class="text-muted">t=168h: Baselining</text>
+  </g>
+
+  <path d="M 240 320 L 240 340 L 390 340 L 390 360" class="conn" />
+  <path d="M 480 320 L 480 340 L 410 340 L 410 360" class="conn" />
+
+  <!-- DIFF ENGINE -->
+  <g transform="translate(250, 370)">
+    <rect width="300" height="50" class="diff"/>
+    <text x="150" y="22" text-anchor="middle" class="text-light">DIFF ENGINE</text>
+    <text x="150" y="40" text-anchor="middle" class="text-muted">A(t) - B(t) = CAUSAL IMPACT(t)</text>
+  </g>
+
+  <path d="M 400 420 L 400 450" class="conn" />
+
+  <!-- CAUSAL CHAIN -->
+  <g transform="translate(40, 460)">
+    <rect width="720" height="100" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">⛓️ CAUSAL CHAIN OUTPUT</text>
+    
+    <text x="360" y="55" text-anchor="middle" class="text-light">Fed decision  ──(0.92)──▶  Treasury yield  ──(0.78)──▶  Mortgage rate</text>
+    <text x="360" y="80" text-anchor="middle" class="text-light">──(0.71)──▶  Housing starts  ──(0.54)──▶  Construction jobs</text>
+  </g>
+
+</svg>
