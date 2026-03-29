@@ -93,73 +93,58 @@ By the time the last effects are visible, the opportunity window has closed.
 ## 🗺️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         BUTTERFLY-EFFECT SYSTEM                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                    DATA INGESTION LAYER                          │    │
-│  │                                                                   │    │
-│  │  FRED API    SEC EDGAR    GDELT    NewsAPI    Custom Scrapers     │    │
-│  │      │           │          │         │              │           │    │
-│  │      └───────────┴──────────┴─────────┴──────────────┘           │    │
-│  │                            │                                      │    │
-│  │                   Celery Beat (15-min polls)                      │    │
-│  │                   Normalize → Event Schema                        │    │
-│  └───────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                    NLP EXTRACTION LAYER                          │    │
-│  │                                                                   │    │
-│  │  spaCy NER + Relationship Extraction                              │    │
-│  │  Entities: [companies, people, sectors, policies, events]        │    │
-│  │  Edges:    [influences, causes, correlates_with, triggers]       │    │
-│  └───────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                   KNOWLEDGE GRAPH (Neo4j)                        │    │
-│  │                                                                   │    │
-│  │  Nodes: Events, Agents, Sectors, Policies, Metrics               │    │
-│  │  Edges: Causal edges with strength, latency, confidence          │    │
-│  │  Schema: edge { strength, latency_hrs, confidence_interval,      │    │
-│  │                 evidence_path, created_at, counterfactual_delta } │    │
-│  └───────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                 ┌────────────┴────────────┐                             │
-│                 ▼                         ▼                             │
-│  ┌──────────────────────┐   ┌──────────────────────────┐              │
-│  │  TIMELINE A          │   │  TIMELINE B              │              │
-│  │  (Event Happens)     │   │  (Counterfactual)        │              │
-│  │                      │   │                          │              │
-│  │  Agents react        │   │  Agents baseline only    │              │
-│  │  Cascades form       │   │  No cascade              │              │
-│  │  t=0 → t=168hrs      │   │  t=0 → t=168hrs          │              │
-│  └──────────┬───────────┘   └────────────┬─────────────┘              │
-│             │                            │                             │
-│             └──────────────┬─────────────┘                             │
-│                            ▼                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │              CAUSAL INFERENCE ENGINE (DoWhy + pgmpy)            │    │
-│  │                                                                   │    │
-│  │  1. Build DAG from graph edges                                    │    │
-│  │  2. Identify causal paths (backdoor/frontdoor)                   │    │
-│  │  3. Block confounders                                             │    │
-│  │  4. Estimate counterfactual delta                                 │    │
-│  │  5. Run refutation tests (placebo, random cause, data subset)    │    │
-│  └───────────────────────────────────────────────────────────────────┘    │
-│                              │                                           │
-│                              ▼                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                    VISUALIZATION LAYER                           │    │
-│  │                                                                   │    │
-│  │  Sigma.js ripple map  │  D3 temporal scrubber  │  Evidence panel  │    │
-│  │  Cytoscape graph      │  Confidence intervals  │  Plain-English   │    │
-│  │  Next.js dashboard    │  Export to PDF/JSON    │  audit trail     │    │
-│  └───────────────────────────────────────────────────────────────────┘    │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+graph TD
+    subgraph Ingestion ["📡 DATA INGESTION LAYER"]
+        A[FRED API | SEC EDGAR | GDELT | NewsAPI] --> B[Celery 15-min polls]
+        B --> C[Normalize → Event Schema]
+    end
+
+    C --> NLP
+
+    subgraph NLP ["🤖 NLP EXTRACTION LAYER"]
+        D[spaCy NER + Relationship Extraction]
+        D --> E["Entities: companies, people, sectors, policies, events"]
+        D --> F["Edges: influences, causes, correlates_with, triggers"]
+    end
+
+    E & F --> KG
+
+    subgraph KG ["🕸️ KNOWLEDGE GRAPH (Neo4j)"]
+        G[(Nodes: Events, Metrics, Agents, Sectors)]
+        G --- H["Schema: edge { strength, latency, CI, evidence }"]
+    end
+
+    KG --> SimA
+    KG --> SimB
+
+    subgraph Sim ["⚖️ PARALLEL SIMULATION"]
+        SimA["<b>TIMELINE A</b><br/>(Event Happens)<br/>Agents React / Cascades Form"]
+        SimB["<b>TIMELINE B</b><br/>(Counterfactual)<br/>Agents baseline only / No cascade"]
+    end
+
+    SimA & SimB --> Inference
+
+    subgraph Inference ["🧠 CAUSAL INFERENCE ENGINE (DoWhy + pgmpy)"]
+        K[1. Build DAG from graph edges]
+        K --> L[2. Identify paths & block confounders]
+        L --> M[3. Estimate counterfactual delta]
+        M --> N[4. Run refutation tests]
+    end
+
+    N --> Viz
+
+    subgraph Viz ["📊 VISUALIZATION LAYER"]
+        O[Next.js Dashboard]
+        O --> P[Sigma.js ripple map | Cytoscape graph]
+        O --> Q[D3 temporal scrubber | Confidence intervals]
+        O --> R[Evidence panel | Plain-English audit trail]
+    end
+    
+    style KG fill:#f9f,stroke:#333,stroke-width:2px
+    style Inference fill:#bbf,stroke:#333,stroke-width:2px
+    style SimA fill:#dfd,stroke:#333
+    style SimB fill:#fdd,stroke:#333
+
 ```
 
 ---
