@@ -151,41 +151,54 @@ graph TD
 
 ## 🔬 How the Counterfactual Engine Works
 
-```
-EVENT OCCURS (e.g., Fed raises rates 75bps — June 2022)
-         │
-         ▼
-┌─────────────────────────────────────────────────┐
-│            PARALLEL SIMULATION                   │
-│                                                  │
-│   Timeline A              Timeline B             │
-│   ─────────               ──────────             │
-│   Agents receive          Agents receive         │
-│   event signal            NO signal              │
-│                                                  │
-│   t=0:  Bond mkts react   t=0:  Flat             │
-│   t=6h: Equity starts     t=6h: Flat             │
-│   t=24h: Mortgage mvmt    t=24h: Flat             │
-│   t=72h: Housing data     t=72h: Baseline        │
-│   t=168h: Labor signal    t=168h: Baseline       │
-└──────────────────────────────────────────────────┘
-         │
-         ▼
-    DIFF ENGINE:  A(t) - B(t)  =  CAUSAL IMPACT(t)
-         │
-         ▼
-┌─────────────────────────────────────────────────┐
-│           CAUSAL CHAIN OUTPUT                    │
-│                                                  │
-│  Fed decision ──(0.92)──▶ Treasury yield        │
-│  Treasury yield ──(0.78)──▶ Mortgage rate       │
-│  Mortgage rate ──(0.71)──▶ Housing starts       │
-│  Housing starts ──(0.54)──▶ Construction jobs   │
-│  Construction jobs ──(0.41)──▶ Consumer spend   │
-│                                                  │
-│  Each edge: strength | latency | confidence      │
-│  Each node: counterfactual delta | evidence      │
-└──────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    Event["<b>EVENT OCCURS</b><br/>(e.g., Fed raises rates 75bps — June 2022)"]
+    Event --> ParallelSim
+
+    subgraph ParallelSim ["⚖️ PARALLEL SIMULATION"]
+        subgraph TimelineA ["<b>Timeline A</b> (Event Happens)"]
+            A0["t=0: Bond mkts react"]
+            A6["t=6h: Equity starts"]
+            A24["t=24h: Mortgage mvmnt"]
+            A72["t=72h: Housing data"]
+            A168["t=168h: Labor signal"]
+        end
+
+        subgraph TimelineB ["<b>Timeline B</b> (Counterfactual)"]
+            B0["t=0: Flat"]
+            B6["t=6h: Flat"]
+            B24["t=24h: Flat"]
+            B72["t=72h: Baseline"]
+            B168["t=168h: Baseline"]
+        end
+    end
+
+    A168 & B168 -->| DIFF | DiffEngine["<b>DIFF ENGINE</b><br/>A(t) - B(t) = CAUSAL IMPACT(t)"]
+    
+    DiffEngine --> Output
+
+    subgraph Output ["⛓️ CAUSAL CHAIN OUTPUT"]
+        Node1["Fed decision"]
+        Node2["Treasury yield"]
+        Node3["Mortgage rate"]
+        Node4["Housing starts"]
+        Node5["Construction jobs"]
+        Node6["Consumer spend"]
+
+        Node1 -- "0.92" --> Node2
+        Node2 -- "0.78" --> Node3
+        Node3 -- "0.71" --> Node4
+        Node4 -- "0.54" --> Node5
+        Node5 -- "0.41" --> Node6
+
+        Legend["Each edge: strength | latency | CI<br/>Each node: delta | evidence"]
+    end
+
+    style TimelineA fill:#dfd,stroke:#333
+    style TimelineB fill:#fdd,stroke:#333
+    style ParallelSim fill:#fcfcfc,stroke:#333
+    style Output fill:#fff,stroke:#333,stroke-width:2px
 ```
 
 ---
