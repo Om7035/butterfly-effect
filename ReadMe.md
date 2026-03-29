@@ -92,114 +92,48 @@ By the time the last effects are visible, the opportunity window has closed.
 
 ## 🗺️ System Architecture
 
-```mermaid
-graph TD
-    subgraph Ingestion ["📡 DATA INGESTION LAYER"]
-        A["FRED API | SEC EDGAR | GDELT | NewsAPI"] --> B[Celery 15-min polls]
-        B --> C[Normalize → Event Schema]
-    end
+<div align="center">
 
-    C --> NLP
+| 📡 Data Ingestion | 🤖 NLP Extraction | 🕸️ Knowledge Graph |
+| :--- | :--- | :--- |
+| **FRED API** · Macro Data | **spaCy NER** · Transformers | **Neo4j** · Causal Nodes |
+| **SEC EDGAR** · Filings | **Relationship** · Extraction | **Causal Edge** · Weighted |
+| **GDELT** · Global Events | **Event Schema** · Normalization | **Evidence** · Traceable |
+| **NewsAPI** · Real-time Feed | **Normalization** · Entity Mapping | **Schema** · Strength & Latency |
 
-    subgraph NLP ["🤖 NLP EXTRACTION LAYER"]
-        D[spaCy NER + Relationship Extraction]
-        D --> E["Entities: companies, people, sectors, policies, events"]
-        D --> F["Edges: influences, causes, correlates_with, triggers"]
-    end
+<br/>
 
-    E & F --> KG
+| ⚖️ Parallel Simulation | 🧠 Causal Inference | 📊 Visualization |
+| :--- | :--- | :--- |
+| **Timeline A** · Event Happens | **DoWhy** · Identification | **Sigma.js** · Ripple Map |
+| **Timeline B** · Counterfactual | **pgmpy** · DAG Building | **Cytoscape** · Causal Graph |
+| **Mesa** · Agent Engine | **Refutation** · Testing | **D3.js** · Time Scrubber |
+| **Mesa** · Reaction Functions | **Estimator** · Delta Calculation | **Next.js** · Dashboard UI |
 
-    subgraph KG ["🕸️ KNOWLEDGE GRAPH (Neo4j)"]
-        G[("Nodes: Events, Metrics, Agents, Sectors")]
-        G --- H["Schema: edge { strength, latency, CI, evidence }"]
-    end
+</div>
 
-    KG --> SimA
-    KG --> SimB
-
-    subgraph Sim ["⚖️ PARALLEL SIMULATION"]
-        SimA["<b>TIMELINE A</b><br/>(Event Happens)<br/>Agents React / Cascades Form"]
-        SimB["<b>TIMELINE B</b><br/>(Counterfactual)<br/>Agents baseline only / No cascade"]
-    end
-
-    SimA & SimB --> Inference
-
-    subgraph Inference ["🧠 CAUSAL INFERENCE ENGINE (DoWhy + pgmpy)"]
-        K[1. Build DAG from graph edges]
-        K --> L[2. Identify paths & block confounders]
-        L --> M[3. Estimate counterfactual delta]
-        M --> N[4. Run refutation tests]
-    end
-
-    N --> Viz
-
-    subgraph Viz ["📊 VISUALIZATION LAYER"]
-        O[Next.js Dashboard]
-        O --> P["Sigma.js ripple map | Cytoscape graph"]
-        O --> Q["D3 temporal scrubber | Confidence intervals"]
-        O --> R["Evidence panel | Plain-English audit trail"]
-    end
-    
-    style KG fill:#f9f,stroke:#333,stroke-width:2px
-    style Inference fill:#bbf,stroke:#333,stroke-width:2px
-    style SimA fill:#dfd,stroke:#333
-    style SimB fill:#fdd,stroke:#333
-
-```
-
----
+<br/>
 
 ## 🔬 How the Counterfactual Engine Works
 
-```mermaid
-graph TD
-    Event["<b>EVENT OCCURS</b><br/>(e.g., Fed raises rates 75bps — June 2022)"]
-    Event --> ParallelSim
+**Butterfly Effect** computes the **Causal Impact** by running two simultaneous, empirically-constrained simulations of the world.
 
-    subgraph ParallelSim ["⚖️ PARALLEL SIMULATION"]
-        subgraph TimelineA ["<b>Timeline A</b> (Event Happens)"]
-            A0["t=0: Bond mkts react"]
-            A6["t=6h: Equity starts"]
-            A24["t=24h: Mortgage mvmnt"]
-            A72["t=72h: Housing data"]
-            A168["t=168h: Labor signal"]
-        end
+### ⚖️ The Parallel Split
+| Step | 🍏 Timeline A (Event Occurs) | 🍎 Timeline B (Counterfactual) |
+| :--- | :--- | :--- |
+| **t=0h** | **Signal Received** · Agents respond | **Baseline** · Pure noise/trend |
+| **t=6h** | **Bond Mkts React** · Yield shift | **Flat** · Standard volatility |
+| **t=24h** | **Equity Volatility** · Tech selloff | **Flat** · No signal |
+| **t=72h** | **Mortgage Movement** · Rates up | **Standard** · No policy shift |
+| **t=168h** | **Labor Signal** · Hiring freeze | **Baseline** · Trend continuation |
 
-        subgraph TimelineB ["<b>Timeline B</b> (Counterfactual)"]
-            B0["t=0: Flat"]
-            B6["t=6h: Flat"]
-            B24["t=24h: Flat"]
-            B72["t=72h: Baseline"]
-            B168["t=168h: Baseline"]
-        end
-    end
+### 🧠 The Inference Output
+Once simulations complete, the **Diff Engine** isolates the delta (`A - B`) and projects the **Causal Chain**:
 
-    A168 & B168 -->| DIFF | DiffEngine["<b>DIFF ENGINE</b><br/>A(t) - B(t) = CAUSAL IMPACT(t)"]
-    
-    DiffEngine --> Output
+> **Fed decision** (0.92) ➔ **Treasury yield** (0.78) ➔ **Mortgage rate** (0.71) ➔ **Housing starts** (0.54) ➔ **Labor signal**
 
-    subgraph Output ["⛓️ CAUSAL CHAIN OUTPUT"]
-        Node1["Fed decision"]
-        Node2["Treasury yield"]
-        Node3["Mortgage rate"]
-        Node4["Housing starts"]
-        Node5["Construction jobs"]
-        Node6["Consumer spend"]
-
-        Node1 -- "0.92" --> Node2
-        Node2 -- "0.78" --> Node3
-        Node3 -- "0.71" --> Node4
-        Node4 -- "0.54" --> Node5
-        Node5 -- "0.41" --> Node6
-
-        Legend["Each edge: strength | latency | CI<br/>Each node: delta | evidence"]
-    end
-
-    style TimelineA fill:#dfd,stroke:#333
-    style TimelineB fill:#fdd,stroke:#333
-    style ParallelSim fill:#fcfcfc,stroke:#333
-    style Output fill:#fff,stroke:#333,stroke-width:2px
-```
+*   **Strength Labels**: Numbers in parentheses represent normalized causal strength.
+*   **Traceability**: Every arrow links to its primary source evidence path.
 
 ---
 
@@ -269,60 +203,27 @@ Every relationship in the knowledge graph is stored as a **Causal Edge**:
 
 ## 🛠️ Tech Stack
 
-```
-┌──────────────────────────────────────────────────┐
-│                   FRONTEND                        │
-│  Next.js 14  │  Tailwind CSS  │  shadcn/ui        │
-│  Sigma.js (graph)  │  D3.js (scrubber/charts)     │
-│  Cytoscape.js (causal map)                        │
-└──────────────────────────────────────────────────┘
+<div align="center">
 
-┌──────────────────────────────────────────────────┐
-│                   BACKEND                         │
-│  FastAPI  │  Python 3.11+  │  PostgreSQL          │
-│  Celery + Redis (async simulation jobs)           │
-│  GraphQL (causal chain queries)                   │
-└──────────────────────────────────────────────────┘
+| 💻 Frontend | ⚙️ Backend | 🕸️ Knowledge Graph |
+| :--- | :--- | :--- |
+| **Next.js 14** · App Router | **FastAPI** · Async Python | **Neo4j 5.x** · Community |
+| **Tailwind CSS** · Styling | **Celery** · Async Tasks | **GraphRAG** · Extractions |
+| **Sigma.js** · Graph Visuals | **Redis** · Broker & Cache | **Causal Schema** · Custom |
+| **D3.js** · Time Scrubber | **PostgreSQL** · Relational | **Cypher** · Graph Queries |
 
-┌──────────────────────────────────────────────────┐
-│               KNOWLEDGE GRAPH                     │
-│  Neo4j 5.x (Community Edition)                   │
-│  Custom causal edge schema                        │
-│  GraphRAG entity extraction                       │
-└──────────────────────────────────────────────────┘
+<br/>
 
-┌──────────────────────────────────────────────────┐
-│             AGENT SIMULATION                      │
-│  Mesa (Python ABM framework)                      │
-│  LangGraph (LLM-backed agents, optional)         │
-│  Empirically constrained reaction functions       │
-└──────────────────────────────────────────────────┘
+| 🤖 Causal Core | ⚖️ Simulation | 📡 Data & Infra |
+| :--- | :--- | :--- |
+| **DoWhy** · Inference Engine | **Mesa** · ABM Framework | **FRED / SEC** · APIs |
+| **pgmpy** · DAG Modeling | **LangGraph** · Optional LLM | **GDELT / News** · Streams |
+| **causalml** · Hetero effects | **Reaction Functions** · Empirical | **Docker Compose** · Dev |
+| **statsmodels** · Metrics | **Behavioral Logs** · Traceable | **Git Actions** · CI/CD |
 
-┌──────────────────────────────────────────────────┐
-│              CAUSAL INFERENCE                     │
-│  DoWhy (causal identification + estimation)       │
-│  pgmpy (Bayesian Networks / DAG modeling)         │
-│  causalml — Uber (heterogeneous effects)          │
-│  statsmodels (Granger causality, VAR)             │
-│  lingam (causal discovery from data)              │
-└──────────────────────────────────────────────────┘
+</div>
 
-┌──────────────────────────────────────────────────┐
-│                 DATA SOURCES                      │
-│  FRED API (macro data — free)                     │
-│  SEC EDGAR (filings — free)                       │
-│  GDELT Project (global events — free)            │
-│  NewsAPI (news feed — $50/mo)                    │
-│  Custom scrapers (spaCy + BeautifulSoup)          │
-└──────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────┐
-│                INFRASTRUCTURE                     │
-│  Docker Compose (local dev)                       │
-│  GitHub Actions (CI/CD)                           │
-│  Pytest + coverage (testing)                      │
-└──────────────────────────────────────────────────┘
-```
+<br/>
 
 ---
 
@@ -451,28 +352,24 @@ butterfly-effect/
 
 ## 🧪 Validation Methodology
 
-butterfly-effect uses a 4-layer validation stack to ensure causal claims are not just correlations:
+**Butterfly Effect** uses a 4-layer validation stack to ensure causal claims are not just correlations:
 
-```
-Layer 1: DoWhy Identification
-  └── Can we identify a valid causal path in the DAG?
-  └── Are backdoor paths blocked by observed confounders?
+### 🛡️ Layer 1: DoWhy Identification
+*   **DAG Pathing**: Can we identify a valid causal path in the directed acyclic graph?
+*   **Confounder Guard**: Are backdoor paths successfully blocked by observed variables?
 
-Layer 2: Refutation Tests (automated)
-  └── Placebo treatment test — does effect disappear with fake cause?
-  └── Random common cause test — does adding noise change estimate?
-  └── Data subset test — is estimate stable across subsets?
+### 🧪 Layer 2: Automated Refutation
+*   **Placebo Test**: Does the effect disappear when we use a fake cause?
+*   **Noise Test**: Does adding random common causes change our estimate?
+*   **Stability Test**: Is the estimate consistent across different data subsets?
 
-Layer 3: Historical Backtesting
-  └── Run on 10 historical events with known outcomes
-  └── Compare counterfactual delta to published consensus estimates
-  └── Require ±20% accuracy to pass
+### 📜 Layer 3: Historical Backtesting
+*   **Benchmarking**: Run against 10 historical events with known outcomes.
+*   **Accuracy Check**: Compare counterfactual delta to published consensus (±20% threshold).
 
-Layer 4: Synthetic Control
-  └── For policy events — construct weighted control group
-  └── Compare to SyntheticControl library output
-  └── Academically defensible, regulator-accepted method
-```
+### 📐 Layer 4: Synthetic Control
+*   **Weighted Controls**: For policy events, construct a weighted synthetic control group.
+*   **Academic Rigor**: Compare outputs to `SyntheticControl` library standards.
 
 ---
 
