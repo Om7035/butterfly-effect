@@ -92,7 +92,7 @@ By the time the last effects are visible, the opportunity window has closed.
 
 ## 🗺️ System Architecture
 
-
+```mermaid
 graph TD
     subgraph Ingestion ["📡 DATA INGESTION LAYER"]
         A[FRED API | SEC EDGAR | GDELT | NewsAPI] --> B[Celery 15-min polls]
@@ -145,9 +145,9 @@ graph TD
     style SimA fill:#dfd,stroke:#333
     style SimB fill:#fdd,stroke:#333
 
+```
 
-
-
+---
 
 ## 🔬 How the Counterfactual Engine Works
 
