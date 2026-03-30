@@ -43,7 +43,7 @@ class RawEvidence(BaseModel):
 
 # ── Individual fetchers ───────────────────────────────────────────────────────
 
-_TIMEOUT = httpx.Timeout(10.0)
+_TIMEOUT = httpx.Timeout(5.0)  # 5s per source — fail fast, don't block pipeline
 
 
 async def fetch_wikipedia(queries: list[str]) -> list[RawEvidence]:
@@ -74,8 +74,8 @@ async def fetch_wikipedia(queries: list[str]) -> list[RawEvidence]:
 async def fetch_gdelt(queries: list[str]) -> list[RawEvidence]:
     """Fetch GDELT article list for each query."""
     results: list[RawEvidence] = []
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        for q in queries[:3]:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(4.0)) as client:
+        for q in queries[:1]:  # cap at 1 — GDELT is slow and often times out
             try:
                 r = await client.get(
                     "http://api.gdeltproject.org/api/v2/doc/doc",

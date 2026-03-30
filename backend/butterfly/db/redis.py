@@ -48,6 +48,8 @@ async def set_cache(key: str, value: Any, ttl: int = 3600) -> None:
     """Set a value in Redis cache."""
     try:
         client = await get_redis()
+        if client is None:
+            return
         await client.setex(key, ttl, str(value))
     except Exception as e:
         logger.warning(f"Failed to set cache for key {key}: {e}")
@@ -57,6 +59,8 @@ async def get_cache(key: str) -> str | None:
     """Get a value from Redis cache."""
     try:
         client = await get_redis()
+        if client is None:
+            return None
         return await client.get(key)
     except Exception as e:
         logger.warning(f"Failed to get cache for key {key}: {e}")
@@ -67,6 +71,8 @@ async def delete_cache(key: str) -> None:
     """Delete a value from Redis cache."""
     try:
         client = await get_redis()
+        if client is None:
+            return
         await client.delete(key)
     except Exception as e:
         logger.warning(f"Failed to delete cache for key {key}: {e}")

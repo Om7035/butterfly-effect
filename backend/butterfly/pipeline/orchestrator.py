@@ -238,7 +238,7 @@ class AnalysisPipeline:
                 event_title=event.title,
                 event_domains=event.domain,
                 event_signal=event_signal,
-                steps=48,  # 48h for speed; full 168h in production
+                steps=96,  # 96h for good chain depth; 168h in production
                 use_llm=False,
             )
             simulation_diff = sim_result.get_diff()
@@ -345,20 +345,22 @@ def _hash_input(text: str) -> str:
 
 def _build_event_signal(event) -> dict:
     """Derive simulation signal from event domains and severity."""
-    severity_map = {"minor": 0.3, "moderate": 0.6, "major": 0.8, "catastrophic": 1.0}
-    magnitude = severity_map.get(event.severity, 0.6)
+    severity_map = {"minor": 0.4, "moderate": 0.7, "major": 0.85, "catastrophic": 1.0}
+    magnitude = severity_map.get(event.severity, 0.7)
 
     signal: dict = {"event_id": f"evt_{event.title[:20]}", "event_magnitude": magnitude}
 
     domain_signals = {
-        "geopolitics": {"conflict_intensity": magnitude},
-        "military":    {"conflict_intensity": magnitude},
-        "economics":   {"interest_rate_delta": magnitude * 0.75},
-        "financial_markets": {"interest_rate_delta": magnitude * 0.5},
-        "energy":      {"oil_price": 80 + magnitude * 20},
-        "climate":     {"storm_intensity": magnitude},
-        "health":      {"infection_rate": magnitude * 0.15},
-        "technology":  {"ai_capability_index": magnitude},
+        "geopolitics":       {"conflict_intensity": magnitude, "oil_price": 80 + magnitude * 15},
+        "military":          {"conflict_intensity": magnitude},
+        "economics":         {"interest_rate_delta": magnitude * 0.75, "event_magnitude": magnitude},
+        "financial_markets": {"interest_rate_delta": magnitude * 0.6, "risk_sentiment": 0.3},
+        "energy":            {"oil_price": 80 + magnitude * 20, "conflict_intensity": magnitude * 0.5},
+        "climate":           {"storm_intensity": magnitude, "infrastructure_damage": magnitude * 0.5},
+        "health":            {"infection_rate": magnitude * 0.2, "event_magnitude": magnitude},
+        "technology":        {"ai_capability_index": magnitude, "demand_shock": magnitude * 0.5},
+        "trade":             {"interest_rate_delta": magnitude * 0.4, "risk_sentiment": 0.4},
+        "humanitarian":      {"conflict_intensity": magnitude * 0.6, "displacement_count": magnitude * 50000},
     }
 
     for domain in event.domain:
@@ -402,17 +404,28 @@ def _synthetic_event(raw_input: str):
     """Create a minimal UniversalEvent from raw text when LLM parsing fails."""
     from butterfly.llm.event_parser import UniversalEvent
 
-    # Keyword-based domain detection
+    # Keyword-based domain detection — most specific first
     text_lower = raw_input.lower()
     domain = "economics"
-    if any(w in text_lower for w in ["war", "conflict", "invasion", "attack", "military"]):
+    if any(w in text_lower for w in ["war", "conflict", "invasion", "attack", "military", "hamas", "israel", "ukraine", "russia", "nato", "troops", "missile"]):
         domain = "geopolitics"
-    elif any(w in text_lower for w in ["hurricane", "earthquake", "flood", "storm", "climate"]):
+    elif any(w in text_lower for w in ["hurricane", "earthquake", "flood", "storm", "climate", "wildfire", "tornado", "typhoon", "drought"]):
         domain = "climate"
-    elif any(w in text_lower for w in ["ai", "chip", "tech", "software", "launch"]):
-        domain = "technology"
-    elif any(w in text_lower for w in ["virus", "pandemic", "outbreak", "disease"]):
+    elif any(w in text_lower for w in ["virus", "pandemic", "outbreak", "disease", "pathogen", "epidemic", "covid", "mortality"]):
         domain = "health"
+    elif any(w in text_lower for w in ["fed", "federal reserve", "fomc", "rate hike", "rate cut", "basis point", "bps", "inflation", "gdp", "recession", "mortgage", "treasury", "yield curve"]):
+        domain = "economics"
+    elif any(w in text_lower for w in ["ai", "openai", "chatgpt", "chip", "semiconductor", "tsmc", "nvidia", "software launch", "tech disruption"]):
+        domain = "technology"
+
+    # Build 3+ specific search queries from the input
+    short = raw_input[:50].strip()
+    queries = [
+        short,
+        f"{short} economic impact",
+        f"{short} market reaction",
+        f"{short} policy response",
+    ]
 
     return UniversalEvent(
         raw_input=raw_input,
@@ -425,9 +438,9 @@ def _synthetic_event(raw_input: str):
         severity="moderate",
         causal_seeds=[
             "Initial shock to affected markets",
-            "Supply chain disruption",
-            "Policy response from governments",
+            "Supply chain disruption follows within 48-72 hours",
+            "Policy response from governments and central banks",
         ],
-        data_fetch_queries=[raw_input[:50]],
+        data_fetch_queries=queries,
         confidence=0.4,
     )

@@ -8,6 +8,7 @@ Influence propagates through a NetworkX graph (not all-to-all).
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import networkx as nx
 from mesa import Agent, Model
@@ -28,8 +29,8 @@ class UniversalAgent(Agent):
     5. Propagate influence to NetworkX neighbors
     """
 
-    def __init__(self, unique_id: int, model: UniversalModel, profile: BehaviorProfile) -> None:
-        super().__init__(unique_id, model)
+    def __init__(self, model: "UniversalModel", profile: BehaviorProfile) -> None:
+        super().__init__(model)
         self.profile = profile
         self._trigger_step: int | None = None   # step when first triggered
         self._pending: list[tuple[int, ReactionFn]] = []  # (apply_at_step, fn)
@@ -119,7 +120,7 @@ class UniversalModel(Model):
         self.agent_by_id: dict[str, UniversalAgent] = {}
 
         for i, profile in enumerate(profiles):
-            agent = UniversalAgent(i, self, profile)
+            agent = UniversalAgent(self, profile)
             self.schedule.add(agent)
             self.agent_by_id[profile.agent_id] = agent
 
