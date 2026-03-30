@@ -1,0 +1,120 @@
+{
+  "scenario": "2022 Fed Rate Hike Cycle",
+  "description": "FOMC decision June 2022, 75bps hike",
+  "event": {
+    "event_id": "fed_2022_hike",
+    "title": "FOMC Raises Rates 75bps",
+    "description": "Federal Open Market Committee raises benchmark interest rate by 75 basis points",
+    "source": "fred",
+    "source_url": "https://fred.stlouisfed.org/series/FEDFUNDS",
+    "occurred_at": "2022-06-15T14:00:00Z",
+    "raw_text": "The Federal Reserve raised its benchmark interest rate by 75 basis points to combat inflation."
+  },
+  "time_series": {
+    "FEDFUNDS": {
+      "description": "Federal Funds Rate",
+      "unit": "%",
+      "pre_event": 1.68,
+      "post_event": 2.42,
+      "ground_truth_change": 0.74
+    },
+    "MORTGAGE30US": {
+      "description": "30-Year Mortgage Rate",
+      "unit": "%",
+      "pre_event": 5.23,
+      "post_event": 7.16,
+      "ground_truth_change": 1.93
+    },
+    "HOUST": {
+      "description": "Housing Starts (thousands)",
+      "unit": "thousands",
+      "pre_event": 1559,
+      "post_event": 1312,
+      "ground_truth_change": -247,
+      "ground_truth_pct_change": -15.8
+    },
+    "UNRATE": {
+      "description": "Unemployment Rate",
+      "unit": "%",
+      "pre_event": 3.62,
+      "post_event": 3.85,
+      "ground_truth_change": 0.23
+    },
+    "T10Y2Y": {
+      "description": "10-Year minus 2-Year Treasury Spread",
+      "unit": "%",
+      "pre_event": 0.95,
+      "post_event": -0.14,
+      "ground_truth_change": -1.09
+    }
+  },
+  "causal_chain": {
+    "description": "Expected causal chain from Fed decision to economic effects",
+    "hops": [
+      {
+        "hop": 1,
+        "from": "Federal Reserve",
+        "to": "Federal Funds Rate",
+        "relationship": "CAUSES",
+        "latency_hours": 0,
+        "description": "Fed directly controls the target range"
+      },
+      {
+        "hop": 2,
+        "from": "Federal Funds Rate",
+        "to": "Treasury Yields",
+        "relationship": "INFLUENCES",
+        "latency_hours": 1,
+        "description": "Market reprices Treasury securities"
+      },
+      {
+        "hop": 3,
+        "from": "Treasury Yields",
+        "to": "Mortgage Rates",
+        "relationship": "INFLUENCES",
+        "latency_hours": 24,
+        "description": "Mortgage rates track 10-year Treasury"
+      },
+      {
+        "hop": 4,
+        "from": "Mortgage Rates",
+        "to": "Housing Starts",
+        "relationship": "CAUSES",
+        "latency_hours": 168,
+        "description": "Higher rates reduce housing demand"
+      },
+      {
+        "hop": 5,
+        "from": "Housing Starts",
+        "to": "Unemployment",
+        "relationship": "INFLUENCES",
+        "latency_hours": 720,
+        "description": "Construction employment declines"
+      }
+    ]
+  },
+  "validation_criteria": {
+    "mortgage_rate_delta": {
+      "expected": 1.93,
+      "tolerance_pct": 20,
+      "min": 1.544,
+      "max": 2.316
+    },
+    "housing_starts_delta_pct": {
+      "expected": -15.8,
+      "tolerance_pct": 20,
+      "min": -18.96,
+      "max": -12.64
+    },
+    "unemployment_delta": {
+      "expected": 0.23,
+      "tolerance_pct": 20,
+      "min": 0.184,
+      "max": 0.276
+    },
+    "causal_chain_depth": {
+      "minimum_hops": 3,
+      "description": "Must find at least 3-hop causal chain"
+    }
+  }
+}

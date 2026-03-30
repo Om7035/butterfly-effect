@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 850" width="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="glow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+    </marker>
+    <style>
+      .layer-bg { fill: #1e293b; stroke: #334155; stroke-width: 2px; rx: 12px; filter: url(#glow); }
+      .box-bg { fill: #334155; stroke: #475569; stroke-width: 1px; rx: 6px; }
+      .title { font-family: -apple-system, sans-serif; font-size: 18px; font-weight: 600; fill: #38bdf8; }
+      .text-light { font-family: -apple-system, sans-serif; font-size: 14px; fill: #f8fafc; font-weight: 500;}
+      .text-muted { font-family: -apple-system, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .conn { stroke: #94a3b8; stroke-width: 2px; fill: none; marker-end: url(#arrow); }
+      .sim-a { fill: #064e3b; stroke: #047857; stroke-width: 1px; rx: 6px; }
+      .sim-b { fill: #7f1d1d; stroke: #b91c1c; stroke-width: 1px; rx: 6px; }
+      .diff { fill: #4c1d95; stroke: #7c3aed; stroke-width: 1px; rx: 6px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bg)" rx="16px" />
+
+  <!-- 1. INGESTION -->
+  <g transform="translate(40, 40)">
+    <rect width="720" height="90" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">📡 DATA INGESTION LAYER</text>
+    
+    <rect x="30" y="40" width="220" height="35" class="box-bg"/>
+    <text x="140" y="62" text-anchor="middle" class="text-light">FRED | SEC | GDELT | NewsAPI</text>
+    
+    <path d="M 260 57 L 310 57" class="conn" />
+    
+    <rect x="320" y="40" width="160" height="35" class="box-bg"/>
+    <text x="400" y="62" text-anchor="middle" class="text-light">Celery (15-min polls)</text>
+    
+    <path d="M 490 57 L 540 57" class="conn" />
+    
+    <rect x="550" y="40" width="140" height="35" class="box-bg"/>
+    <text x="620" y="62" text-anchor="middle" class="text-light">Event Normalization</text>
+  </g>
+
+  <!-- Flow 1 to 2 -->
+  <path d="M 400 130 L 400 160" class="conn" />
+
+  <!-- 2. NLP EXTR -->
+  <g transform="translate(40, 170)">
+    <rect width="720" height="90" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">🤖 NLP EXTRACTION LAYER</text>
+    
+    <rect x="30" y="40" width="200" height="35" class="box-bg"/>
+    <text x="130" y="62" text-anchor="middle" class="text-light">spaCy NER + Relations</text>
+    
+    <path d="M 240 57 L 290 57" class="conn" />
+    
+    <rect x="300" y="40" width="390" height="35" class="box-bg"/>
+    <text x="495" y="62" text-anchor="middle" class="text-light">Entities &amp; Edges (influences, causes, triggers)</text>
+  </g>
+
+  <!-- Flow 2 to 3 -->
+  <path d="M 400 260 L 400 290" class="conn" />
+
+  <!-- 3. KG -->
+  <g transform="translate(40, 300)">
+    <rect width="720" height="90" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">🕸️ KNOWLEDGE GRAPH (Neo4j)</text>
+    
+    <rect x="80" y="40" width="560" height="35" class="box-bg"/>
+    <text x="360" y="62" text-anchor="middle" class="text-light">Graph Nodes &amp; Causal Edges (strength, latency, CI, evidence)</text>
+  </g>
+
+  <path d="M 400 390 L 400 420" class="conn" />
+
+  <!-- 4. SIMULATION -->
+  <g transform="translate(40, 430)">
+    <rect width="720" height="110" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">⚖️ PARALLEL SIMULATION</text>
+    
+    <rect x="100" y="40" width="240" height="50" class="sim-a" />
+    <text x="220" y="60" text-anchor="middle" class="text-light">TIMELINE A</text>
+    <text x="220" y="78" text-anchor="middle" class="text-muted">(Event Happens - Agents React)</text>
+    
+    <rect x="380" y="40" width="240" height="50" class="sim-b" />
+    <text x="500" y="60" text-anchor="middle" class="text-light">TIMELINE B</text>
+    <text x="500" y="78" text-anchor="middle" class="text-muted">(Counterfactual - Flat Baseline)</text>
+  </g>
+
+  <path d="M 220 540 L 220 560 L 390 560 L 390 580" class="conn" />
+  <path d="M 500 540 L 500 560 L 410 560 L 410 580" class="conn" />
+
+  <!-- 5. INFERENCE -->
+  <g transform="translate(40, 590)">
+    <rect width="720" height="90" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">🧠 CAUSAL INFERENCE ENGINE (DoWhy + pgmpy)</text>
+    
+    <rect x="30" y="40" width="140" height="35" class="box-bg"/>
+    <text x="100" y="62" text-anchor="middle" class="text-light">Build DAG</text>
+    
+    <path d="M 180 57 L 210 57" class="conn" />
+    
+    <rect x="220" y="40" width="140" height="35" class="box-bg"/>
+    <text x="290" y="62" text-anchor="middle" class="text-light">Block Confounders</text>
+    
+    <path d="M 370 57 L 400 57" class="conn" />
+    
+    <rect x="410" y="40" width="140" height="35" class="diff"/>
+    <text x="480" y="62" text-anchor="middle" class="text-light">Estimate Δ (Diff)</text>
+    
+    <path d="M 560 57 L 590 57" class="conn" />
+    
+    <rect x="600" y="40" width="100" height="35" class="box-bg"/>
+    <text x="650" y="62" text-anchor="middle" class="text-light">Refutations</text>
+  </g>
+
+  <path d="M 400 680 L 400 710" class="conn" />
+
+  <!-- 6. VISUALIZATION -->
+  <g transform="translate(40, 720)">
+    <rect width="720" height="90" class="layer-bg" />
+    <text x="360" y="25" text-anchor="middle" class="title">📊 VISUALIZATION LAYER (Next.js)</text>
+    
+    <rect x="60" y="40" width="180" height="35" class="box-bg"/>
+    <text x="150" y="62" text-anchor="middle" class="text-light">Ripple Map &amp; Graph</text>
+    
+    <rect x="270" y="40" width="180" height="35" class="box-bg"/>
+    <text x="360" y="62" text-anchor="middle" class="text-light">Temporal Scrubber</text>
+    
+    <rect x="480" y="40" width="180" height="35" class="box-bg"/>
+    <text x="570" y="62" text-anchor="middle" class="text-light">Evidence Trail</text>
+  </g>
+
+</svg>

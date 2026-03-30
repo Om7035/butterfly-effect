@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Neo4j Graph Database
+  neo4j:
+    image: neo4j:5-community
+    container_name: butterfly-neo4j
+    ports:
+      - "7474:7474"  # Browser UI
+      - "7687:7687"  # Bolt protocol
+    environment:
+      NEO4J_AUTH: neo4j/butterfly_dev
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/var/lib/neo4j/data
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - butterfly-net
+
+  # PostgreSQL Relational Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: butterfly-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: butterfly
+      POSTGRES_USER: butterfly
+      POSTGRES_PASSWORD: butterfly
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U butterfly"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - butterfly-net
+
+  # Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: butterfly-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - butterfly-net
+
+volumes:
+  neo4j_data:
+  postgres_data:
+
+networks:
+  butterfly-net:
+    driver: bridge
