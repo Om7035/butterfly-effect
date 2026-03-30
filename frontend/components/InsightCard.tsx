@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,35 +57,21 @@ export default function InsightCard({ insight, index, prefersReduced }: Props) {
       style={{ background: style.bg, border: `1px solid ${style.border}`, borderRadius: "12px", overflow: "hidden" }}
     >
       <div style={{ padding: "12px 14px" }}>
-        {/* Header row */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-          <span style={{ fontSize: "9px", fontWeight: "700", color: style.text, background: `${style.border}`, padding: "2px 7px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.06em", border: `1px solid ${style.border}` }}>
+          <span style={{ fontSize: "9px", fontWeight: "700", color: style.text, background: style.border, padding: "2px 7px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.06em", border: `1px solid ${style.border}` }}>
             {style.label}
           </span>
           <span style={{ fontSize: "9px", color: "#475569", fontFamily: "monospace" }}>hop {insight.hop}</span>
           <div style={{ flex: 1 }} />
-          <button
-            onClick={handleShare}
-            title="Copy insight"
-            style={{ background: "none", border: "none", color: copied ? "#34d399" : "#475569", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center" }}
-          >
+          <button onClick={handleShare} title="Copy insight"
+            style={{ background: "none", border: "none", color: copied ? "#34d399" : "#475569", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center" }}>
             <Share2 size={11} />
           </button>
         </div>
-
-        {/* Insight text */}
-        <p style={{ fontSize: "12px", color: "#cbd5e1", lineHeight: "1.55", margin: "0 0 10px 0" }}>
-          {insight.text}
-        </p>
-
-        {/* Confidence */}
+        <p style={{ fontSize: "12px", color: "#cbd5e1", lineHeight: "1.55", margin: "0 0 10px 0" }}>{insight.text}</p>
         <ConfidenceBar value={insight.confidence} />
-
-        {/* Expand toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          style={{ display: "flex", alignItems: "center", gap: "4px", background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: "10px", marginTop: "8px", padding: "0", fontFamily: "inherit" }}
-        >
+        <button onClick={() => setExpanded(!expanded)}
+          style={{ display: "flex", alignItems: "center", gap: "4px", background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: "10px", marginTop: "8px", padding: "0", fontFamily: "inherit" }}>
           <BookOpen size={10} />
           Why this matters
           <motion.span animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -93,20 +79,12 @@ export default function InsightCard({ insight, index, prefersReduced }: Props) {
           </motion.span>
         </button>
       </div>
-
       <AnimatePresence>
         {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            style={{ overflow: "hidden" }}
-          >
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} style={{ overflow: "hidden" }}>
             <div style={{ padding: "0 14px 12px", borderTop: `1px solid ${style.border}` }}>
-              <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: "1.6", margin: "10px 0 8px" }}>
-                {insight.why}
-              </p>
+              <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: "1.6", margin: "10px 0 8px" }}>{insight.why}</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                 {insight.sources.map((src) => (
                   <span key={src} style={{ fontSize: "9px", color: "#475569", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: "4px" }}>

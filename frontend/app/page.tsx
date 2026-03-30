@@ -1,5 +1,6 @@
 ﻿"use client";
 
+// imports resolved — AnalysisStream, InsightCard, EvidencePanelNew, TemporalReplay
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ReactFlowProvider } from "reactflow";
