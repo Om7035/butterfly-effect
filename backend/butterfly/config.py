@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     # External APIs
     fred_api_key: Optional[str] = None
     news_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    acled_api_key: Optional[str] = None
 
     # Application
     debug: bool = True

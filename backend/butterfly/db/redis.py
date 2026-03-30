@@ -9,7 +9,7 @@ from butterfly.config import settings
 redis_client: Optional[redis.Redis] = None
 
 
-async def init_redis() -> redis.Redis:
+async def init_redis() -> Optional[redis.Redis]:
     """Initialize Redis connection."""
     global redis_client
     try:
@@ -19,6 +19,7 @@ async def init_redis() -> redis.Redis:
         return redis_client
     except Exception as e:
         logger.error(f"Failed to connect to Redis: {e}")
+        redis_client = None
         raise
 
 
@@ -30,11 +31,15 @@ async def close_redis() -> None:
         logger.info("Redis connection closed")
 
 
-async def get_redis() -> redis.Redis:
+async def get_redis() -> Optional[redis.Redis]:
     """Get Redis client."""
     global redis_client
     if redis_client is None:
-        redis_client = await init_redis()
+        try:
+            redis_client = await redis.from_url(settings.redis_url, decode_responses=True)
+            await redis_client.ping()
+        except Exception:
+            return None
     return redis_client
 
 

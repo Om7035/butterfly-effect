@@ -16,6 +16,8 @@ from butterfly.db.neo4j import init_neo4j, close_neo4j, init_constraints
 from butterfly.api.events import router as events_router
 from butterfly.api.causal import router as causal_router
 from butterfly.api.simulation import router as simulation_router
+from butterfly.api.demo import router as demo_router
+from butterfly.api.analyze import router as analyze_router
 
 # Rate limiter (10 req/min for simulation endpoints)
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -60,15 +62,27 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event() -> None:
         logger.info("Starting butterfly-effect v0.4.0...")
+
+        # Postgres — optional, warn and continue if unavailable
         try:
             await create_all_tables()
+        except Exception as e:
+            logger.warning(f"Postgres unavailable (running without it): {e}")
+
+        # Redis — optional
+        try:
             await init_redis()
+        except Exception as e:
+            logger.warning(f"Redis unavailable (running without it): {e}")
+
+        # Neo4j — optional
+        try:
             await init_neo4j()
             await init_constraints()
-            logger.info("All services initialized")
         except Exception as e:
-            logger.error(f"Startup error: {e}")
-            raise
+            logger.warning(f"Neo4j unavailable (running without it): {e}")
+
+        logger.info("Startup complete — degraded mode if DBs are offline")
 
     @app.on_event("shutdown")
     async def shutdown_event() -> None:
@@ -121,6 +135,8 @@ def create_app() -> FastAPI:
     app.include_router(events_router)
     app.include_router(causal_router)
     app.include_router(simulation_router)
+    app.include_router(demo_router)
+    app.include_router(analyze_router)
 
     logger.info("App created — routes registered")
     return app

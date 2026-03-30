@@ -21,7 +21,9 @@ const NODE_GLOW: Record<string, string> = {
 interface NodePos { x: number; y: number; vx: number; vy: number; }
 
 // Force-directed layout engine
-function runForce(
+// Legacy Sigma.js code removed - now using React Flow
+
+function runForceLegacy(
   nodes: GraphNode[],
   edges: GraphEdge[],
   W: number,
@@ -267,7 +269,7 @@ export default function CausalGraph() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || nodes.length === 0) return;
-    positionsRef.current = runForce(nodes, edges, canvas.offsetWidth, canvas.offsetHeight);
+    positionsRef.current = runForceLegacy(nodes, edges, canvas.offsetWidth, canvas.offsetHeight);
   }, [nodes, edges]);
 
   // Animation loop

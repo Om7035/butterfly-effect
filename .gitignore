@@ -60,3 +60,7 @@ htmlcov/
 # Neo4j
 neo4j_data/
 postgres_data/
+
+# Kiro IDE settings (may contain API keys)
+.kiro/settings/mcp.json
+.kiro/settings/

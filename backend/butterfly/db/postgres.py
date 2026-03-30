@@ -27,12 +27,19 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency for database sessions."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    """FastAPI dependency for database sessions. Raises 503 if Postgres is unavailable."""
+    try:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail="Database unavailable — start Postgres or use /api/v1/demo endpoints",
+        )
 
 
 async def create_all_tables() -> None:
@@ -44,8 +51,6 @@ async def create_all_tables() -> None:
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")
         raise
-
-
 async def drop_all_tables() -> None:
     """Drop all database tables (for testing)."""
     try:

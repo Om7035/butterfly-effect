@@ -146,3 +146,78 @@ Overall: 3/3 scenarios passed -- PHASE 7 GATE PASSED
 - CounterfactualDiff: AreaChart with gradients, metric icons, delta bars
 - EventSidebar: polished cards, animated active indicator
 - globals.css: custom scrollbar, dark base, canvas transition fix
+
+
+## Phase 8: Graph UI Redesign (Miro/Figjam Style)
+
+**Status:** ✅ COMPLETE
+
+**Goal:** Transform Sigma.js force-directed graph into Miro/Figjam-style infinite canvas
+
+### Implementation Summary
+
+**New Components Created:**
+- `frontend/components/graph/CausalGraphCanvas.tsx` - Main React Flow wrapper
+- `frontend/components/graph/nodes/EventNode.tsx` - Sticky note style (yellow gradient)
+- `frontend/components/graph/nodes/EntityNode.tsx` - Card style (blue gradient)
+- `frontend/components/graph/nodes/MetricNode.tsx` - Chart style (green gradient)
+- `frontend/components/graph/nodes/PolicyNode.tsx` - Badge style (purple gradient)
+- `frontend/components/graph/edges/CausalEdge.tsx` - Smooth bezier with animations
+- `frontend/components/graph/edges/InfluenceEdge.tsx` - Dashed influence edges
+- `frontend/components/graph/controls/GraphToolbar.tsx` - Layout controls
+- `frontend/components/graph/controls/LayoutSelector.tsx` - Layout picker
+- `frontend/components/graph/utils/graphTransforms.ts` - Data transforms & layouts
+- `frontend/components/CausalGraphNew.tsx` - New graph component
+- `frontend/app/graph-demo/page.tsx` - Demo page with sample data
+
+**Technology Migration:**
+- ❌ Sigma.js (canvas-based, force-directed only)
+- ✅ React Flow (React components, freeform positioning)
+
+**Features Implemented:**
+- ✅ Freeform drag-and-drop positioning
+- ✅ Smooth bezier edges (hand-drawn aesthetic)
+- ✅ Animated flow particles on causal edges
+- ✅ Confidence-based edge coloring
+- ✅ Latency labels on edges
+- ✅ Built-in minimap
+- ✅ Zoom/pan controls
+- ✅ 4 layout algorithms (hierarchical, radial, grid, freeform)
+- ✅ Miro-inspired color palette
+- ✅ Sticky note aesthetic for event nodes
+- ✅ Card style for entity nodes
+- ✅ Chart style for metric nodes
+- ✅ Badge style for policy nodes
+- ✅ Hover effects and animations
+- ✅ Confidence score bars
+- ✅ Delta indicators (↑ ↓)
+
+**Visual Design:**
+- Soft, rounded shapes with subtle shadows
+- Pastel gradients (yellow, blue, green, purple)
+- Whiteboard/canvas feel (#F5F5F5 background)
+- Hand-drawn bezier connectors
+- Depth through layering
+
+**Demo:**
+Visit `/graph-demo` to see the new Miro-style graph in action
+
+**Next Steps:**
+- [ ] Replace old CausalGraph.tsx with CausalGraphNew.tsx
+- [ ] Add node palette for drag-to-add
+- [ ] Implement multi-select with lasso
+- [ ] Add keyboard shortcuts
+- [ ] Optimize for mobile/touch
+
+**Files Modified:**
+- `frontend/package.json` - Added reactflow dependency
+- `PROGRESS.md` - This update
+
+**Documentation:**
+- `docs/GRAPH_UI_REDESIGN.md` - Complete design specification
+- `frontend/components/graph/README.md` - Component documentation
+- `CODEBASE_ANALYSIS.md` - Updated with graph UI section
+
+---
+
+*Phase 8 completed: March 30, 2026*

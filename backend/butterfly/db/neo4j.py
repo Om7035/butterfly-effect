@@ -9,7 +9,7 @@ from butterfly.config import settings
 neo4j_driver: Optional[AsyncDriver] = None
 
 
-async def init_neo4j() -> AsyncDriver:
+async def init_neo4j() -> Optional[AsyncDriver]:
     """Initialize Neo4j driver."""
     global neo4j_driver
     try:
@@ -17,13 +17,13 @@ async def init_neo4j() -> AsyncDriver:
             settings.neo4j_uri,
             auth=(settings.neo4j_user, settings.neo4j_password),
         )
-        # Test connection
         async with neo4j_driver.session() as session:
             await session.run("RETURN 1")
         logger.info("Neo4j connection established")
         return neo4j_driver
     except Exception as e:
         logger.error(f"Failed to connect to Neo4j: {e}")
+        neo4j_driver = None
         raise
 
 
