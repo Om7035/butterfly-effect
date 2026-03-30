@@ -9,8 +9,8 @@
 | 2 | Knowledge Graph | COMPLETE | 3-hop queries work, tests green |
 | 3 | Causal Core | COMPLETE | 3/3 metrics within +/-20% of ground truth |
 | 4 | Simulation | COMPLETE | 4/4 gate checks pass, 0.2s for 100 agents/168 steps |
-| 5 | API Layer | planned | |
-| 6 | Frontend | planned | |
+| 5 | API Layer | COMPLETE | All routes wired, Postman collection created |
+| 6 | Frontend | COMPLETE | Dashboard + demo page, TypeScript clean |
 | 7 | Validation | planned | |
 | 8 | Launch | planned | |
 

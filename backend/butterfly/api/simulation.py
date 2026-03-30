@@ -1,6 +1,8 @@
 """Simulation API routes — /api/v1/simulation."""
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from loguru import logger
@@ -14,10 +16,13 @@ from butterfly.simulation.runner import SimulationRunner
 
 router = APIRouter(prefix="/api/v1/simulation", tags=["simulation"])
 _runner = SimulationRunner()
+_limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/run")
+@_limiter.limit("10/minute")
 async def run_simulation(
+    request: Request,
     body: dict,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),

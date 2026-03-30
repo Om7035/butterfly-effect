@@ -1,21 +1,27 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    "./app/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./lib/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        dark: '#0f172a',
-        slate: {
-          50: '#f8fafc',
-          900: '#0f172a',
-        },
+        // Dark theme palette
+        bg: "#0a0e1a",
+        surface: "#111827",
+        border: "#1f2937",
+        muted: "#374151",
+        // Node type colors
+        "node-event": "#7c3aed",
+        "node-metric": "#0d9488",
+        "node-entity": "#ea580c",
+        "node-policy": "#1d4ed8",
       },
     },
   },
   plugins: [],
-}
-export default config
+};
+export default config;
