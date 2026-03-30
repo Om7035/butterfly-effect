@@ -40,12 +40,14 @@ interface CausalGraphCanvasProps {
   initialNodes?: Node[];
   initialEdges?: Edge[];
   title?: string;
+  onNodeClick?: (nodeId: string) => void;
 }
 
 export default function CausalGraphCanvas({
   initialNodes = [],
   initialEdges = [],
   title,
+  onNodeClick,
 }: CausalGraphCanvasProps) {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -87,6 +89,7 @@ export default function CausalGraphCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={(_, node) => onNodeClick?.(node.id)}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
