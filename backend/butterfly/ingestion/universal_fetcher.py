@@ -18,8 +18,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, Optional
 
 import httpx
 from loguru import logger
@@ -35,8 +35,8 @@ class RawEvidence(BaseModel):
     source:          str
     title:           str
     content:         str            # max 500 chars
-    url:             Optional[str]  = None
-    published_at:    Optional[datetime] = None
+    url:             str | None  = None
+    published_at:    datetime | None = None
     relevance_score: float          = 0.5
     domain_tags:     list[str]      = []
 
@@ -184,7 +184,7 @@ async def fetch_acled(queries: list[str]) -> list[RawEvidence]:
         return []
     results: list[RawEvidence] = []
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        for q in queries[:2]:
+        for _q in queries[:2]:
             try:
                 r = await client.get(
                     "https://api.acleddata.com/acled/read",

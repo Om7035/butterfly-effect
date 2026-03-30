@@ -1,9 +1,9 @@
 """Base ingester abstract class."""
 
 from abc import ABC, abstractmethod
-from loguru import logger
-from typing import List
 from datetime import datetime
+
+from loguru import logger
 
 from butterfly.models.event import EventCreate
 
@@ -21,7 +21,7 @@ class BaseIngester(ABC):
         self.last_run: datetime | None = None
 
     @abstractmethod
-    async def ingest(self) -> List[EventCreate]:
+    async def ingest(self) -> list[EventCreate]:
         """Ingest data and return list of events.
 
         Returns:
@@ -30,7 +30,6 @@ class BaseIngester(ABC):
         Raises:
             Exception: If ingestion fails (should be caught and logged)
         """
-        pass
 
     async def run(self) -> int:
         """Run the ingester and return count of events created.

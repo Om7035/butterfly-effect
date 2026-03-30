@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from typing import Optional
 
 from loguru import logger
 
@@ -126,7 +125,7 @@ class UniversalRunner:
                 asyncio.gather(a_future, b_future),
                 timeout=settings.simulation_timeout_seconds,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"[{run_id}] Simulation timed out")
             raise
 

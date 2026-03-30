@@ -19,13 +19,8 @@ import json
 import math
 import random
 import uuid
-from typing import Any, Optional
 
-import networkx as nx
 from loguru import logger
-from mesa import Agent, Model
-from mesa.time import RandomActivation
-from mesa.datacollection import DataCollector
 from pydantic import BaseModel, Field
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -41,13 +36,20 @@ class TriggerRule(BaseModel):
     def is_triggered(self, env: dict[str, float]) -> bool:
         val = env.get(self.variable, 0.0)
         match self.operator:
-            case ">":  return val > self.threshold
-            case "<":  return val < self.threshold
-            case ">=": return val >= self.threshold
-            case "<=": return val <= self.threshold
-            case "==": return abs(val - self.threshold) < 1e-6
-            case "!=": return abs(val - self.threshold) >= 1e-6
-            case _:    return False
+            case ">":
+                return val > self.threshold
+            case "<":
+                return val < self.threshold
+            case ">=":
+                return val >= self.threshold
+            case "<=":
+                return val <= self.threshold
+            case "==":
+                return abs(val - self.threshold) < 1e-6
+            case "!=":
+                return abs(val - self.threshold) >= 1e-6
+            case _:
+                return False
 
 
 class ReactionFn(BaseModel):
@@ -503,6 +505,7 @@ class DynamicAgentGenerator:
         """Call Claude once to enrich profiles with domain-specific parameters."""
         try:
             import anthropic
+
             from butterfly.config import settings
 
             if not settings.anthropic_api_key:

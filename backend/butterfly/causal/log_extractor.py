@@ -13,12 +13,9 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Optional
 
 from loguru import logger
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel
 
 # ── Output models ─────────────────────────────────────────────────────────────
 
@@ -152,7 +149,6 @@ class CausalLogExtractor:
         # ── Step 3: Build one CausalHop per variable that diverged ────────────
         hops: list[CausalHop] = []
         peak_effect_step = 0
-        peak_delta_global = 0.0
 
         for var, entries in var_entries.items():
             hop = self._build_hop(
@@ -165,7 +161,6 @@ class CausalLogExtractor:
                 hops.append(hop)
                 if hop.step_peak > peak_effect_step:
                     peak_effect_step = hop.step_peak
-                    peak_delta_global = hop.magnitude
 
         # ── Step 4: Sort hops by step_triggered (causal order) ───────────────
         hops.sort(key=lambda h: (h.step_triggered, h.step_peak))
@@ -226,7 +221,7 @@ class CausalLogExtractor:
         entries: list[dict],
         diff_series: dict[int, float],
         total_steps: int,
-    ) -> Optional[CausalHop]:
+    ) -> CausalHop | None:
         """Build a CausalHop for one variable.
 
         Returns None if the variable never diverged significantly.
@@ -283,7 +278,7 @@ class CausalLogExtractor:
         variable: str,
         entries: list[dict],
         diff_series: dict[int, float],
-    ) -> Optional[int]:
+    ) -> int | None:
         """Find the first step where A diverges from B by > 2%.
 
         Strategy:
@@ -372,14 +367,12 @@ class CausalLogExtractor:
         # Build directed graph: var_a → var_b if same agent changed both
         # (var_a changed first → var_b changed later)
         import networkx as nx
-        G: nx.DiGraph = nx.DiGraph()
-
+        graph: nx.DiGraph = nx.DiGraph()
         hop_vars = {h.to_variable for h in hops}
         for var in hop_vars:
-            G.add_node(var)
+            graph.add_node(var)
 
         for agent, vars_changed in agent_to_vars.items():
-            # Sort by first occurrence step
             vars_with_step = []
             for var in vars_changed:
                 if var in hop_vars and var_entries.get(var):
@@ -387,17 +380,14 @@ class CausalLogExtractor:
                     vars_with_step.append((first_step, var))
             vars_with_step.sort()
 
-            # Add edges in temporal order
             for i in range(len(vars_with_step) - 1):
                 _, v_from = vars_with_step[i]
                 _, v_to = vars_with_step[i + 1]
                 if v_from != v_to:
-                    G.add_edge(v_from, v_to, agent=agent)
+                    graph.add_edge(v_from, v_to, agent=agent)
 
-        # Find all simple cycles (DFS)
         try:
-            cycles = list(nx.simple_cycles(G))
-            # Filter: only cycles of length >= 2 (A → B → A is length 2)
+            cycles = list(nx.simple_cycles(graph))
             meaningful_cycles = [c for c in cycles if len(c) >= 2]
             logger.debug(f"Detected {len(meaningful_cycles)} feedback loops")
             return meaningful_cycles

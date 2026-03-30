@@ -1,6 +1,6 @@
 """NLP extraction modules."""
 
 from butterfly.extraction.ner import EntityExtractor, ExtractedEntity
-from butterfly.extraction.relations import RelationExtractor, ExtractedRelation
+from butterfly.extraction.relations import ExtractedRelation, RelationExtractor
 
-__all__ = ["EntityExtractor", "ExtractedEntity", "RelationExtractor", "ExtractedRelation"]
+__all__ = ["EntityExtractor", "ExtractedEntity", "ExtractedRelation", "RelationExtractor"]

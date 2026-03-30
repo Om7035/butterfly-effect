@@ -1,22 +1,22 @@
 """FRED (Federal Reserve Economic Data) API ingester."""
 
+from datetime import datetime
+from typing import ClassVar
+
 import httpx
 from loguru import logger
-from typing import List, Optional
-from datetime import datetime, timedelta
-import json
 
-from butterfly.ingestion.base import BaseIngester
-from butterfly.models.event import EventCreate
 from butterfly.config import settings
 from butterfly.db.redis import get_cache, set_cache
+from butterfly.ingestion.base import BaseIngester
+from butterfly.models.event import EventCreate
 
 
 class FREDIngester(BaseIngester):
     """Ingester for FRED API data."""
 
     BASE_URL = "https://api.stlouisfed.org/fred"
-    SERIES_IDS = [
+    SERIES_IDS: ClassVar[list[str]] = [
         "FEDFUNDS",      # Fed funds rate
         "MORTGAGE30US",  # 30-year mortgage rate
         "HOUST",         # Housing starts
@@ -31,7 +31,7 @@ class FREDIngester(BaseIngester):
         if not self.api_key:
             logger.warning("FRED_API_KEY not set — FRED ingestion will be skipped")
 
-    async def ingest(self) -> List[EventCreate]:
+    async def ingest(self) -> list[EventCreate]:
         """Fetch latest data from FRED API.
 
         Returns:

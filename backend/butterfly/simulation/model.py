@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Callable
+from collections.abc import Callable
+from typing import Any
 
 from mesa import Model
-from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
+from mesa.time import RandomActivation
 
 from butterfly.simulation.agents import (
-    MarketAgent,
     HousingAgent,
-    SupplyChainAgent,
+    MarketAgent,
     PolicyAgent,
+    SupplyChainAgent,
 )
 
 
@@ -25,12 +26,12 @@ class ButterflyModel(Model):
 
     def __init__(
         self,
-        event_signal: Optional[dict] = None,
+        event_signal: dict | None = None,
         n_market: int = 50,
         n_housing: int = 30,
         n_supply: int = 15,
         n_policy: int = 5,
-        progress_cb: Optional[Callable[[int], None]] = None,
+        progress_cb: Callable[[int], None] | None = None,
     ) -> None:
         super().__init__()
         self.event_signal = event_signal

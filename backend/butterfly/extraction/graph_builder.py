@@ -5,14 +5,15 @@ Maps extracted entities and relations to the universal ontology:
   Edges:  14 relationship types with full property sets
 """
 
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
-from loguru import logger
-from datetime import datetime
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
+from loguru import logger
 
 from butterfly.db.neo4j import run_query
-from butterfly.extraction.ner import ExtractedEntity, EntityExtractor
+from butterfly.extraction.ner import EntityExtractor, ExtractedEntity
 from butterfly.extraction.relations import ExtractedRelation, RelationExtractor
 
 
@@ -58,7 +59,6 @@ _REL_REQUIRED_PROPS: dict[str, list[str]] = {
     "CAUSED_BY":      ["validated", "method"],
     "SIMULATED_REACTION": ["agent_type", "step", "magnitude"],
     "MENTIONS":       ["context", "relevance"],
-    "INFLUENCES":     ["direction", "strength", "latency_hours"],
 }
 
 # Default property values when not extractable from text
@@ -234,7 +234,7 @@ class GraphBuilder:
         source: str,
         occurred_at: datetime,
         raw_text: str,
-        domain: Optional[str] = None,
+        domain: str | None = None,
     ) -> str:
         """Create or update an Event node in Neo4j."""
         query = """
@@ -289,7 +289,7 @@ class GraphBuilder:
         source: str,
         occurred_at: datetime,
         raw_text: str,
-        domain: Optional[str] = None,
+        domain: str | None = None,
     ) -> GraphBuildResult:
         """Full pipeline: text → entities → relations → Neo4j graph.
 
@@ -340,7 +340,7 @@ class GraphBuilder:
 
     async def get_causal_chain(
         self, event_id: str, max_hops: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Traverse the causal chain from an event up to max_hops deep."""
         query = f"""
         MATCH path = (e:Event {{event_id: $event_id}})

@@ -1,7 +1,6 @@
 """Celery application and task definitions."""
 
 from celery import Celery
-from celery.schedules import schedule
 from loguru import logger
 
 from butterfly.config import settings

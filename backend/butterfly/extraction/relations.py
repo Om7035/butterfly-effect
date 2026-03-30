@@ -1,10 +1,10 @@
 """Relationship extraction from text."""
 
-from dataclasses import dataclass
-from typing import List, Optional
-from loguru import logger
 import re
+from dataclasses import dataclass
+
 import spacy
+from loguru import logger
 from spacy.language import Language
 
 from butterfly.extraction.ner import ExtractedEntity
@@ -47,8 +47,8 @@ class RelationExtractor:
             self.nlp = None
 
     def extract_relations(
-        self, text: str, entities: List[ExtractedEntity]
-    ) -> List[ExtractedRelation]:
+        self, text: str, entities: list[ExtractedEntity]
+    ) -> list[ExtractedRelation]:
         """Extract relationships between entities.
 
         Args:
@@ -78,8 +78,8 @@ class RelationExtractor:
         return relations
 
     def _extract_by_patterns(
-        self, text: str, entities: List[ExtractedEntity]
-    ) -> List[ExtractedRelation]:
+        self, text: str, entities: list[ExtractedEntity]
+    ) -> list[ExtractedRelation]:
         """Extract relationships using causal language patterns.
 
         Args:
@@ -117,8 +117,8 @@ class RelationExtractor:
         return relations
 
     def _extract_by_proximity(
-        self, text: str, entities: List[ExtractedEntity]
-    ) -> List[ExtractedRelation]:
+        self, text: str, entities: list[ExtractedEntity]
+    ) -> list[ExtractedRelation]:
         """Extract relationships by entity co-occurrence and proximity.
 
         Args:
@@ -168,7 +168,7 @@ class RelationExtractor:
         return relations
 
     @staticmethod
-    def _find_entity(text: str, entities: List[ExtractedEntity]) -> Optional[ExtractedEntity]:
+    def _find_entity(text: str, entities: list[ExtractedEntity]) -> ExtractedEntity | None:
         """Find an entity by text (fuzzy match).
 
         Args:

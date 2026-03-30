@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from typing import Optional, Callable
+from collections.abc import Callable
 
 from loguru import logger
 
@@ -25,7 +25,7 @@ class SimulationRunner:
         n_housing: int = 30,
         n_supply: int = 15,
         n_policy: int = 5,
-        progress_cb: Optional[Callable[[float], None]] = None,
+        progress_cb: Callable[[float], None] | None = None,
     ) -> SimulationResult:
         """Run Timeline A (event) and Timeline B (counterfactual) concurrently.
 
@@ -75,7 +75,7 @@ class SimulationRunner:
                 asyncio.gather(a_future, b_future),
                 timeout=settings.simulation_timeout_seconds,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Simulation {run_id} timed out after {settings.simulation_timeout_seconds}s")
             raise
 

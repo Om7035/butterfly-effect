@@ -1,14 +1,14 @@
 """Event API routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
-from loguru import logger
 import uuid
-from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from loguru import logger
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from butterfly.db.postgres import get_db
-from butterfly.models.event import EventORM, EventCreate, EventResponse
+from butterfly.models.event import EventCreate, EventORM, EventResponse
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
 
@@ -49,7 +49,7 @@ async def create_event(event: EventCreate, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to create event: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to create event")
+        raise HTTPException(status_code=500, detail="Failed to create event") from None
 
 
 @router.get("", response_model=dict)
@@ -96,7 +96,7 @@ async def list_events(
         }
     except Exception as e:
         logger.error(f"Failed to list events: {e}")
-        raise HTTPException(status_code=500, detail="Failed to list events")
+        raise HTTPException(status_code=500, detail="Failed to list events") from None
 
 
 @router.get("/{event_id}", response_model=EventResponse)
@@ -123,4 +123,4 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Failed to get event {event_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get event")
+        raise HTTPException(status_code=500, detail="Failed to get event") from None

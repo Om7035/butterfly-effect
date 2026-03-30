@@ -1,17 +1,17 @@
 """Causal analysis API routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from loguru import logger
+import json
 import uuid
 
-from butterfly.db.postgres import get_db
-from butterfly.db.redis import set_cache, get_cache
-from butterfly.models.event import EventORM
-from butterfly.models.causal_edge import CounterfactualResult
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from butterfly.causal.counterfactual import CounterfactualEngine
-import json
+from butterfly.db.postgres import get_db
+from butterfly.db.redis import get_cache, set_cache
+from butterfly.models.event import EventORM
 
 router = APIRouter(prefix="/api/v1/causal", tags=["causal"])
 engine = CounterfactualEngine()
@@ -76,7 +76,7 @@ async def get_causal_chain(event_id: str):
     try:
         return json.loads(cached)
     except Exception:
-        raise HTTPException(status_code=500, detail="Failed to parse cached result")
+        raise HTTPException(status_code=500, detail="Failed to parse cached result") from None
 
 
 @router.get("/{event_id}/edges")
@@ -89,7 +89,7 @@ async def get_causal_edges(event_id: str):
         data = json.loads(cached)
         return {"event_id": event_id, "edges": data.get("causal_edges", [])}
     except Exception:
-        raise HTTPException(status_code=500, detail="Failed to parse cached result")
+        raise HTTPException(status_code=500, detail="Failed to parse cached result") from None
 
 
 @router.get("/{event_id}/diff")
@@ -108,7 +108,7 @@ async def get_counterfactual_diff(event_id: str):
             "peak_delta_at_hours": data.get("peak_delta_at_hours", {}),
         }
     except Exception:
-        raise HTTPException(status_code=500, detail="Failed to parse cached result")
+        raise HTTPException(status_code=500, detail="Failed to parse cached result") from None
 
 
 @router.get("/{event_id}/evidence")
@@ -133,4 +133,4 @@ async def get_evidence_paths(event_id: str):
         ]
         return {"event_id": event_id, "evidence": evidence}
     except Exception:
-        raise HTTPException(status_code=500, detail="Failed to parse cached result")
+        raise HTTPException(status_code=500, detail="Failed to parse cached result") from None

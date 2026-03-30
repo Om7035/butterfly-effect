@@ -1,21 +1,22 @@
 """GDELT (Global Database of Events, Language, and Tone) ingester."""
 
+import asyncio
+from datetime import datetime
+from typing import ClassVar
+
 import httpx
 from loguru import logger
-from typing import List
-from datetime import datetime
-import asyncio
 
+from butterfly.db.redis import get_cache, set_cache
 from butterfly.ingestion.base import BaseIngester
 from butterfly.models.event import EventCreate
-from butterfly.db.redis import get_cache, set_cache
 
 
 class GDELTIngester(BaseIngester):
     """Ingester for GDELT 2.0 Events API."""
 
     BASE_URL = "http://api.gdeltproject.org/api/v2/doc/doc"
-    THEMES = [
+    THEMES: ClassVar[list[str]] = [
         "ECON_TRADE",
         "ECON_INTEREST",
         "SUPPLY_CHAIN",
@@ -26,7 +27,7 @@ class GDELTIngester(BaseIngester):
         """Initialize GDELT ingester."""
         super().__init__("GDELT")
 
-    async def ingest(self) -> List[EventCreate]:
+    async def ingest(self) -> list[EventCreate]:
         """Fetch latest events from GDELT API.
 
         Returns:

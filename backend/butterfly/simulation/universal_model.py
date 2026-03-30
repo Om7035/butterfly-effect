@@ -7,16 +7,14 @@ Influence propagates through a NetworkX graph (not all-to-all).
 
 from __future__ import annotations
 
-import random
-from typing import Any, Callable, Optional
+from collections.abc import Callable
 
 import networkx as nx
-from loguru import logger
 from mesa import Agent, Model
-from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
+from mesa.time import RandomActivation
 
-from butterfly.simulation.dynamic_agents import BehaviorProfile, TriggerRule, ReactionFn
+from butterfly.simulation.dynamic_agents import BehaviorProfile, ReactionFn
 
 
 class UniversalAgent(Agent):
@@ -30,10 +28,10 @@ class UniversalAgent(Agent):
     5. Propagate influence to NetworkX neighbors
     """
 
-    def __init__(self, unique_id: int, model: "UniversalModel", profile: BehaviorProfile) -> None:
+    def __init__(self, unique_id: int, model: UniversalModel, profile: BehaviorProfile) -> None:
         super().__init__(unique_id, model)
         self.profile = profile
-        self._trigger_step: Optional[int] = None   # step when first triggered
+        self._trigger_step: int | None = None   # step when first triggered
         self._pending: list[tuple[int, ReactionFn]] = []  # (apply_at_step, fn)
 
     def step(self) -> None:
@@ -56,7 +54,7 @@ class UniversalAgent(Agent):
         for apply_at, fn in self._pending:
             if current_step >= apply_at:
                 old_val = env.get(fn.target_variable, 0.0)
-                delta = fn.apply(old_val, current_step, self._trigger_step or current_step)
+                delta = fn.apply(old_val, current_step, self._trigger_step if self._trigger_step is not None else current_step)
                 new_val = old_val + delta * self.profile.dampening_factor
                 env[fn.target_variable] = new_val
 
@@ -90,7 +88,7 @@ class UniversalAgent(Agent):
             if neighbor_agent:
                 env = self.model.environment
                 old = env.get(variable, 0.0)
-                env[variable] = old + delta * weight * 0.3  # dampened propagation
+                env[variable] = old + delta * weight * 0.3
 
 
 class UniversalModel(Model):
@@ -102,8 +100,8 @@ class UniversalModel(Model):
     def __init__(
         self,
         profiles: list[BehaviorProfile],
-        event_signal: Optional[dict] = None,
-        progress_cb: Optional[Callable[[int], None]] = None,
+        event_signal: dict | None = None,
+        progress_cb: Callable[[int], None] | None = None,
     ) -> None:
         super().__init__()
         self.event_signal = event_signal
@@ -167,7 +165,7 @@ class UniversalModel(Model):
 
     @staticmethod
     def _init_environment(
-        profiles: list[BehaviorProfile], event_signal: Optional[dict]
+        profiles: list[BehaviorProfile], event_signal: dict | None
     ) -> dict[str, float]:
         """Populate environment from profile initial states + event signal."""
         env: dict[str, float] = {
@@ -219,11 +217,11 @@ class UniversalModel(Model):
     @staticmethod
     def _build_influence_graph(profiles: list[BehaviorProfile]) -> nx.DiGraph:
         """Build directed influence graph from profile influence_targets."""
-        G = nx.DiGraph()
+        graph = nx.DiGraph()
         for profile in profiles:
-            G.add_node(profile.agent_id, name=profile.agent_name)
+            graph.add_node(profile.agent_id, name=profile.agent_name)
         for profile in profiles:
             for target_id in profile.influence_targets:
-                if target_id in G:
-                    G.add_edge(profile.agent_id, target_id, weight=0.5)
-        return G
+                if target_id in graph:
+                    graph.add_edge(profile.agent_id, target_id, weight=0.5)
+        return graph

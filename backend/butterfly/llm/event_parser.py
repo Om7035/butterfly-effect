@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
-from typing import Optional
 
 import anthropic
 from loguru import logger
@@ -113,7 +112,7 @@ class DomainClassifier:
     """Lightweight rule-based domain classifier with LLM fallback."""
 
     def __init__(self) -> None:
-        self._client: Optional[anthropic.AsyncAnthropic] = None
+        self._client: anthropic.AsyncAnthropic | None = None
         if settings.anthropic_api_key:
             self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 

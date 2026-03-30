@@ -1,10 +1,10 @@
 """Event data models for Pydantic and SQLAlchemy."""
 
-from pydantic import BaseModel, Field
-from sqlalchemy import Column, String, DateTime, Boolean, Text, JSON
-from sqlalchemy.orm import declarative_base
 from datetime import datetime
-from typing import Optional, List
+
+from pydantic import BaseModel, Field
+from sqlalchemy import JSON, Boolean, Column, DateTime, String, Text
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -20,7 +20,7 @@ class EventBase(BaseModel):
     title: str
     description: str
     source: str = Field(..., description="fred | edgar | gdelt | news | manual")
-    source_url: Optional[str] = None
+    source_url: str | None = None
     occurred_at: datetime
     raw_text: str
 
@@ -28,17 +28,16 @@ class EventBase(BaseModel):
 class EventCreate(EventBase):
     """Schema for creating a new event."""
 
-    pass
 
 
 class EventResponse(EventBase):
     """Schema for event API responses."""
 
     event_id: str
-    entities: List[str] = []
+    entities: list[str] = []
     processed: bool = False
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

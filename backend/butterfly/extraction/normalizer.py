@@ -1,9 +1,8 @@
 """Entity name normalization utilities."""
 
-from typing import Dict
 
 # Normalization mappings
-ENTITY_NORMALIZATIONS: Dict[str, str] = {
+ENTITY_NORMALIZATIONS: dict[str, str] = {
     # Federal Reserve
     "federal reserve": "Federal Reserve",
     "fed": "Federal Reserve",

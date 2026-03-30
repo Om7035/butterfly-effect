@@ -14,13 +14,11 @@ Template sources:
 from __future__ import annotations
 
 import json
-from functools import lru_cache
-from typing import Optional
+
 from loguru import logger
 
 from butterfly.db.neo4j import run_query
 from butterfly.db.redis import get_cache, set_cache
-
 
 # ── Domain DAG templates ──────────────────────────────────────────────────────
 # Each template is a dict with:
@@ -153,7 +151,7 @@ DOMAIN_TEMPLATES: dict[str, dict] = {
 }
 
 
-def get_template_for_domain(domain: str) -> Optional[dict]:
+def get_template_for_domain(domain: str) -> dict | None:
     """Return the DAG template for a given domain string."""
     return DOMAIN_TEMPLATES.get(domain.lower())
 
@@ -161,7 +159,7 @@ def get_template_for_domain(domain: str) -> Optional[dict]:
 class DAGBuilder:
     """Build a causal DAG from the Neo4j knowledge graph."""
 
-    async def build_dag_for_event(self, event_id: str) -> Optional[dict]:
+    async def build_dag_for_event(self, event_id: str) -> dict | None:
         """Build a DAG dict for a given event.
 
         Queries Neo4j for all CAUSES/TRIGGERS edges reachable within 4 hops,
@@ -227,7 +225,7 @@ class DAGBuilder:
             logger.error(f"Fallback DAG query failed: {e}")
             return []
 
-    def _build_dag_from_results(self, results: list[dict]) -> Optional[dict]:
+    def _build_dag_from_results(self, results: list[dict]) -> dict | None:
         """Convert query results into a DAG dict.
 
         Args:
@@ -285,7 +283,7 @@ class DAGBuilder:
 
     def _find_cycle_edge(
         self, nodes: list[str], edges: list[tuple[str, str, float]]
-    ) -> Optional[tuple[str, str, float]]:
+    ) -> tuple[str, str, float] | None:
         """Find the weakest edge that is part of a cycle using DFS.
 
         Returns:
@@ -298,7 +296,7 @@ class DAGBuilder:
         visited: set[str] = set()
         rec_stack: set[str] = set()
 
-        def dfs(node: str) -> Optional[tuple[str, str]]:
+        def dfs(node: str) -> tuple[str, str] | None:
             visited.add(node)
             rec_stack.add(node)
             for neighbor in adj.get(node, []):

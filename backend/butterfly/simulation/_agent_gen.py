@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
-import uuid
-import random
+
 from loguru import logger
+
 from butterfly.simulation.dynamic_agents import (
-    BehaviorProfile, TriggerRule, ReactionFn,
-    AGENT_TEMPLATES, EMERGENT_RULES, _make_profile,
+    AGENT_TEMPLATES,
+    EMERGENT_RULES,
+    BehaviorProfile,
+    ReactionFn,
+    TriggerRule,
+    _make_profile,
 )
 
 
@@ -114,6 +118,7 @@ class DynamicAgentGenerator:
     ) -> list[BehaviorProfile]:
         try:
             import anthropic
+
             from butterfly.config import settings
             if not settings.anthropic_api_key:
                 return profiles

@@ -1,8 +1,8 @@
 """Application configuration using Pydantic Settings."""
 
-from pydantic_settings import BaseSettings
+
 from pydantic import ConfigDict
-from typing import Optional
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -19,10 +19,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # External APIs
-    fred_api_key: Optional[str] = None
-    news_api_key: Optional[str] = None
-    anthropic_api_key: Optional[str] = None
-    acled_api_key: Optional[str] = None
+    fred_api_key: str | None = None
+    news_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    acled_api_key: str | None = None
 
     # Application
     debug: bool = True

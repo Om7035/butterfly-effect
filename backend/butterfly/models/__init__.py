@@ -1,9 +1,14 @@
 """Data models for butterfly-effect."""
 
-from butterfly.models.event import EventORM, EventCreate, EventResponse, EventBase
 from butterfly.models.causal_edge import CausalEdge, CausalEstimate, CounterfactualResult
+from butterfly.models.event import EventBase, EventCreate, EventORM, EventResponse
 
 __all__ = [
-    "EventORM", "EventCreate", "EventResponse", "EventBase",
-    "CausalEdge", "CausalEstimate", "CounterfactualResult",
+    "CausalEdge",
+    "CausalEstimate",
+    "CounterfactualResult",
+    "EventBase",
+    "EventCreate",
+    "EventORM",
+    "EventResponse",
 ]

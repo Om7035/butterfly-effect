@@ -1,8 +1,8 @@
 """CausalEdge model — canonical data model for all causal relationships."""
 
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class CausalEdge(BaseModel):
@@ -20,7 +20,7 @@ class CausalEdge(BaseModel):
     evidence_path: list[str] = Field(default_factory=list)  # Source IDs supporting this edge
     refutation_passed: bool = False                 # Did automated refutation tests pass?
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
 
 class CausalEstimate(BaseModel):

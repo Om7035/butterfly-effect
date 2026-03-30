@@ -1,15 +1,16 @@
 """Neo4j graph database connection and utilities."""
 
-from neo4j import AsyncDriver, AsyncGraphDatabase
+from typing import Any
+
 from loguru import logger
-from typing import Optional, List, Dict, Any
+from neo4j import AsyncDriver, AsyncGraphDatabase
 
 from butterfly.config import settings
 
-neo4j_driver: Optional[AsyncDriver] = None
+neo4j_driver: AsyncDriver | None = None
 
 
-async def init_neo4j() -> Optional[AsyncDriver]:
+async def init_neo4j() -> AsyncDriver | None:
     """Initialize Neo4j driver."""
     global neo4j_driver
     try:
@@ -43,7 +44,7 @@ async def get_neo4j() -> AsyncDriver:
     return neo4j_driver
 
 
-async def run_query(query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict]:
+async def run_query(query: str, parameters: dict[str, Any] | None = None) -> list[dict]:
     """Run a Cypher query and return results."""
     try:
         driver = await get_neo4j()

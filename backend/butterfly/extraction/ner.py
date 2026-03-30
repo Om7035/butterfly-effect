@@ -4,10 +4,10 @@ Maps spaCy entities + keyword rules to the 8 universal node labels:
   Event, Actor, System, Resource, Metric, Policy, Location, Belief
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional
-from loguru import logger
 import re
+from dataclasses import dataclass
+
+from loguru import logger
 
 try:
     import spacy
@@ -30,9 +30,9 @@ class ExtractedEntity:
     start: int
     end: int
     confidence: float
-    actor_type: Optional[str] = None    # "nation-state" | "organization" | "individual" | "market"
-    resource_type: Optional[str] = None # "energy" | "food" | "capital" | "data" | "people"
-    system_domain: Optional[str] = None # "financial" | "supply_chain" | "energy_grid" | "political"
+    actor_type: str | None = None    # "nation-state" | "organization" | "individual" | "market"
+    resource_type: str | None = None # "energy" | "food" | "capital" | "data" | "people"
+    system_domain: str | None = None # "financial" | "supply_chain" | "energy_grid" | "political"
 
 
 # ── spaCy label → universal label ────────────────────────────────────────────
@@ -154,12 +154,12 @@ class EntityExtractor:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def extract(self, text: str) -> List[ExtractedEntity]:
+    def extract(self, text: str) -> list[ExtractedEntity]:
         """Extract entities from text, returning universal-label entities."""
         if not text or not text.strip():
             return []
 
-        entities: List[ExtractedEntity] = []
+        entities: list[ExtractedEntity] = []
 
         # Layer 1: spaCy NER
         if self.nlp:
@@ -191,7 +191,7 @@ class EntityExtractor:
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
-    def _extract_spacy(self, text: str) -> List[ExtractedEntity]:
+    def _extract_spacy(self, text: str) -> list[ExtractedEntity]:
         entities = []
         try:
             doc = self.nlp(text)
@@ -221,8 +221,8 @@ class EntityExtractor:
         return entities
 
     def _extract_keywords(
-        self, text: str, existing: List[ExtractedEntity]
-    ) -> List[ExtractedEntity]:
+        self, text: str, existing: list[ExtractedEntity]
+    ) -> list[ExtractedEntity]:
         """Keyword-based extraction for domain terms spaCy misses."""
         entities = []
         text_lower = text.lower()

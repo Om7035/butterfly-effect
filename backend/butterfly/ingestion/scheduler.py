@@ -1,16 +1,15 @@
 """Celery task scheduler for data ingestion."""
 
-from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import uuid
-from datetime import datetime
 
-from butterfly.worker import celery_app
+from loguru import logger
+from sqlalchemy import select
+
+from butterfly.db.postgres import AsyncSessionLocal
 from butterfly.ingestion.fred import FREDIngester
 from butterfly.ingestion.gdelt import GDELTIngester
 from butterfly.models.event import EventORM
-from butterfly.db.postgres import AsyncSessionLocal
+from butterfly.worker import celery_app
 
 
 async def save_events(events_data: list) -> int:

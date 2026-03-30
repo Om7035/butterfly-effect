@@ -1,7 +1,7 @@
 """Demo API routes — serve hardcoded data so the frontend works without any DB."""
 
+
 from fastapi import APIRouter
-from datetime import datetime
 
 router = APIRouter(prefix="/api/v1/demo", tags=["demo"])
 

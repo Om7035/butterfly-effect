@@ -1,23 +1,23 @@
 """FastAPI application factory and main entry point."""
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from loguru import logger
 import sys
 
-from butterfly.config import settings
-from butterfly.db.postgres import create_all_tables, close_db
-from butterfly.db.redis import init_redis, close_redis
-from butterfly.db.neo4j import init_neo4j, close_neo4j, init_constraints
-from butterfly.api.events import router as events_router
-from butterfly.api.causal import router as causal_router
-from butterfly.api.simulation import router as simulation_router
-from butterfly.api.demo import router as demo_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
 from butterfly.api.analyze import router as analyze_router
+from butterfly.api.causal import router as causal_router
+from butterfly.api.demo import router as demo_router
+from butterfly.api.events import router as events_router
+from butterfly.api.simulation import router as simulation_router
+from butterfly.config import settings
+from butterfly.db.neo4j import close_neo4j, init_constraints, init_neo4j
+from butterfly.db.postgres import close_db, create_all_tables
+from butterfly.db.redis import close_redis, init_redis
 
 # Rate limiter (10 req/min for simulation endpoints)
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -94,10 +94,11 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:
         """Health check — returns status of all backing services."""
+        from sqlalchemy import text as sa_text
+
+        from butterfly.db.neo4j import neo4j_driver
         from butterfly.db.postgres import engine as pg_engine
         from butterfly.db.redis import redis_client
-        from butterfly.db.neo4j import neo4j_driver
-        from sqlalchemy import text as sa_text
 
         postgres_ok = redis_ok = neo4j_ok = False
 

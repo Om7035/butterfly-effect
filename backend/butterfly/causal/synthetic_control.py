@@ -22,13 +22,11 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 from loguru import logger
 from scipy.optimize import minimize
-
 
 # ── Output model ──────────────────────────────────────────────────────────────
 
@@ -93,7 +91,7 @@ class SyntheticControlEstimator:
         )
 
         # Validate inputs
-        missing = [u for u in [treated_unit] + control_units if u not in data.columns]
+        missing = [u for u in [treated_unit, *control_units] if u not in data.columns]
         if missing:
             return self._error_result(
                 treated_unit, outcome_variable, treatment_date,
@@ -122,7 +120,7 @@ class SyntheticControlEstimator:
             treated_pre=pre_data[treated_unit].values,
             controls_pre=pre_data[control_units].values,
         )
-        weight_dict = dict(zip(control_units, weights))
+        weight_dict = dict(zip(control_units, weights, strict=False))
 
         # ── Step 2: Construct synthetic counterfactual ────────────────────────
         all_data = pd.concat([pre_data, post_data])

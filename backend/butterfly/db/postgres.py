@@ -1,13 +1,13 @@
 """PostgreSQL database connection and session management."""
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
+from collections.abc import AsyncGenerator
+
 from loguru import logger
-from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from butterfly.config import settings
 from butterfly.models.event import Base
-
 
 # Create async engine
 engine = create_async_engine(
@@ -34,12 +34,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
                 yield session
             finally:
                 await session.close()
-    except Exception as e:
+    except Exception:
         from fastapi import HTTPException
         raise HTTPException(
             status_code=503,
             detail="Database unavailable — start Postgres or use /api/v1/demo endpoints",
-        )
+        ) from None
 
 
 async def create_all_tables() -> None:

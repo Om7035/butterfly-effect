@@ -1,8 +1,8 @@
 """Simulation data models."""
 
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class SimulationRun(BaseModel):
@@ -13,9 +13,9 @@ class SimulationRun(BaseModel):
     status: str = "queued"          # queued | running | complete | failed
     timeline_a_id: str = ""
     timeline_b_id: str = ""
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error: str | None = None
 
 
 class SimulationResult(BaseModel):

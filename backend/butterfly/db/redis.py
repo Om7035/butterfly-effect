@@ -1,15 +1,16 @@
 """Redis connection and cache utilities."""
 
+from typing import Any
+
 import redis.asyncio as redis
 from loguru import logger
-from typing import Optional, Any
 
 from butterfly.config import settings
 
-redis_client: Optional[redis.Redis] = None
+redis_client: redis.Redis | None = None
 
 
-async def init_redis() -> Optional[redis.Redis]:
+async def init_redis() -> redis.Redis | None:
     """Initialize Redis connection."""
     global redis_client
     try:
@@ -31,7 +32,7 @@ async def close_redis() -> None:
         logger.info("Redis connection closed")
 
 
-async def get_redis() -> Optional[redis.Redis]:
+async def get_redis() -> redis.Redis | None:
     """Get Redis client."""
     global redis_client
     if redis_client is None:
@@ -52,7 +53,7 @@ async def set_cache(key: str, value: Any, ttl: int = 3600) -> None:
         logger.warning(f"Failed to set cache for key {key}: {e}")
 
 
-async def get_cache(key: str) -> Optional[str]:
+async def get_cache(key: str) -> str | None:
     """Get a value from Redis cache."""
     try:
         client = await get_redis()

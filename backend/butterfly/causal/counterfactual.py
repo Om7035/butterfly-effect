@@ -2,20 +2,15 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
-from typing import Optional
-from loguru import logger
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from butterfly.causal.dag import DAGBuilder
 from butterfly.causal.identification import CausalIdentifier
 from butterfly.models.causal_edge import CausalEdge, CounterfactualResult
-from butterfly.db.redis import get_cache, set_cache
-import json
-
 
 # Empirical causal parameters grounded in historical data
 # Source: Bernanke (2005) transmission mechanism, NAR historical data
@@ -66,8 +61,8 @@ class CounterfactualEngine:
         self,
         event_id: str,
         horizon_hours: int = 168,
-        baseline_data: Optional[dict[str, float]] = None,
-        treatment_deltas: Optional[dict[str, float]] = None,
+        baseline_data: dict[str, float] | None = None,
+        treatment_deltas: dict[str, float] | None = None,
     ) -> CounterfactualResult:
         """Run counterfactual analysis for an event.
 
@@ -95,7 +90,7 @@ class CounterfactualEngine:
             )
 
         # Build time steps (hourly)
-        steps = list(range(0, horizon_hours + 1))
+        steps = list(range(horizon_hours + 1))
 
         # Generate timelines
         timeline_a = self._generate_timeline(baseline, deltas, steps, apply_treatment=True)
@@ -158,7 +153,7 @@ class CounterfactualEngine:
         a simple linear chain from the treatment_deltas keys in order.
         """
         timeline: dict[str, list[float]] = {m: [] for m in baseline}
-        accumulated: dict[str, float] = {m: 0.0 for m in baseline}
+        accumulated: dict[str, float] = dict.fromkeys(baseline, 0.0)
 
         if apply_treatment:
             for metric, delta in treatment_deltas.items():

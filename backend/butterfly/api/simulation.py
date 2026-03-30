@@ -1,16 +1,17 @@
 """Simulation API routes — /api/v1/simulation."""
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
+import json
+import uuid
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from loguru import logger
-import uuid
-import json
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from butterfly.db.postgres import get_db
-from butterfly.db.redis import set_cache, get_cache
+from butterfly.db.redis import get_cache, set_cache
 from butterfly.models.event import EventORM
 from butterfly.simulation.runner import SimulationRunner
 

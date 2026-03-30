@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -52,7 +52,7 @@ class CausalEstimateResult:
     refutation_results: dict = field(default_factory=dict)
     identified: bool = False
     is_associational: bool = False          # True when causal ID failed
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # ── Outcome type detector ─────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ class OutcomeTypeDetector:
     1. Binary: only 0/1 values (or True/False)
     2. Count: non-negative integers, no values in (0,1)
     3. Rate: values strictly in [0,1] with non-integer values present
-    4. Ordinal: integer values in a small range (2–20 unique values)
+    4. Ordinal: integer values in a small range (2-20 unique values)
     5. Continuous: everything else (prices, temperatures, indices)
 
     Reference: Agresti (2013) Categorical Data Analysis, Ch. 1
@@ -88,7 +88,7 @@ class OutcomeTypeDetector:
         n_unique = len(unique)
 
         # 1. Binary: exactly {0, 1} or {0} or {1}
-        if set(unique).issubset({0, 1, 0.0, 1.0, True, False}):
+        if set(unique).issubset({0, 1}):
             return "binary"
 
         # 2. Check if all values are integers (or integer-valued floats)
@@ -140,7 +140,7 @@ class UniversalCausalEstimator:
         treatment: str,
         outcome: str,
         data: pd.DataFrame,
-        outcome_type: Optional[OutcomeType] = None,
+        outcome_type: OutcomeType | None = None,
     ) -> CausalEstimateResult:
         """Estimate the causal effect of treatment on outcome.
 
@@ -228,12 +228,12 @@ class UniversalCausalEstimator:
         try:
             import statsmodels.api as sm
 
-            X = sm.add_constant(data[[treatment]].dropna())
-            y = data[outcome].loc[X.index]
+            x_data = sm.add_constant(data[[treatment]].dropna())
+            y = data[outcome].loc[x_data.index]
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
+                model = sm.GLM(y, x_data, family=sm.families.Poisson()).fit()
 
             coef = float(model.params[treatment])
             ci = model.conf_int().loc[treatment].values
@@ -285,19 +285,18 @@ class UniversalCausalEstimator:
         try:
             import statsmodels.api as sm
 
-            X = sm.add_constant(data[[treatment]].dropna())
-            y = data[outcome].loc[X.index].astype(float)
+            x_data = sm.add_constant(data[[treatment]].dropna())
+            y = data[outcome].loc[x_data.index].astype(float)
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                model = sm.Logit(y, X).fit(disp=False)
+                model = sm.Logit(y, x_data).fit(disp=False)
 
             coef = float(model.params[treatment])
-            ci = model.conf_int().loc[treatment].values
             pval = float(model.pvalues[treatment])
 
             # Average Marginal Effect: mean of p(1-p) * coef
-            p_hat = model.predict(X)
+            p_hat = model.predict(x_data)
             ame = float(np.mean(p_hat * (1 - p_hat)) * coef)
             # AME CI (delta method approximation)
             ame_se = float(np.mean(p_hat * (1 - p_hat))) * float(model.bse[treatment])
@@ -343,12 +342,12 @@ class UniversalCausalEstimator:
         try:
             from statsmodels.miscmodels.ordinal_model import OrderedModel
 
-            X = data[[treatment]].dropna()
-            y = data[outcome].loc[X.index].astype(int)
+            x_data = data[[treatment]].dropna()
+            y = data[outcome].loc[x_data.index].astype(int)
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                model = OrderedModel(y, X, distr="logit").fit(method="bfgs", disp=False)
+                model = OrderedModel(y, x_data, distr="logit").fit(method="bfgs", disp=False)
 
             coef = float(model.params[treatment])
             ci = model.conf_int().loc[treatment].values
@@ -392,17 +391,17 @@ class UniversalCausalEstimator:
         try:
             from scipy import stats
 
-            X = data[treatment].dropna().values
+            x_data = data[treatment].dropna().values
             y_raw = data[outcome].loc[data[treatment].dropna().index].values.astype(float)
 
             # Logit transform: log(p/(1-p)), clip to avoid ±inf
             y_clipped = np.clip(y_raw, 1e-6, 1 - 1e-6)
             y_logit = np.log(y_clipped / (1 - y_clipped))
 
-            min_len = min(len(X), len(y_logit))
-            X, y_logit = X[:min_len], y_logit[:min_len]
+            min_len = min(len(x_data), len(y_logit))
+            x_data, y_logit = x_data[:min_len], y_logit[:min_len]
 
-            slope, intercept, r_value, p_value, std_err = stats.linregress(X, y_logit)
+            slope, _intercept, _r_value, p_value, std_err = stats.linregress(x_data, y_logit)
             ci = (slope - 1.96 * std_err, slope + 1.96 * std_err)
 
             # Back-transform: marginal effect at mean
@@ -450,12 +449,12 @@ class UniversalCausalEstimator:
         try:
             from scipy import stats as scipy_stats
 
-            x = data[treatment].dropna().values
+            x_data = data[treatment].dropna().values
             y = data[outcome].dropna().values
-            n = min(len(x), len(y))
-            x, y = x[:n], y[:n]
+            n = min(len(x_data), len(y))
+            x_data, y = x_data[:n], y[:n]
 
-            slope, _, r_val, p_val, std_err = scipy_stats.linregress(x, y)
+            slope, _, _r_val, p_val, std_err = scipy_stats.linregress(x_data, y)
             ci = (slope - 1.96 * std_err, slope + 1.96 * std_err)
 
             return CausalEstimateResult(
