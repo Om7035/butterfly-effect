@@ -11,6 +11,7 @@ from butterfly.db.redis import init_redis, close_redis
 from butterfly.db.neo4j import init_neo4j, close_neo4j, init_constraints
 from butterfly.api.events import router as events_router
 from butterfly.api.causal import router as causal_router
+from butterfly.api.simulation import router as simulation_router
 
 
 def create_app() -> FastAPI:
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(events_router)
     app.include_router(causal_router)
+    app.include_router(simulation_router)
 
     return app
 

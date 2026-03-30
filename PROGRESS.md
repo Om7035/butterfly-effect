@@ -8,7 +8,7 @@
 | 1 | Data Pipeline | COMPLETE | 50+ events ingested, tests green |
 | 2 | Knowledge Graph | COMPLETE | 3-hop queries work, tests green |
 | 3 | Causal Core | COMPLETE | 3/3 metrics within +/-20% of ground truth |
-| 4 | Simulation | planned | |
+| 4 | Simulation | COMPLETE | 4/4 gate checks pass, 0.2s for 100 agents/168 steps |
 | 5 | API Layer | planned | |
 | 6 | Frontend | planned | |
 | 7 | Validation | planned | |
@@ -72,4 +72,42 @@ backend/butterfly/
     causal.py           # /api/v1/causal/* routes
 backend/scripts/
   validate_fed_2022.py  # Phase 3 gate validation script
+```
+
+## Phase 4 Simulation Results
+
+```
+Simulation complete in 0.2s
+Steps completed: 168
+Agent log entries: 80
+
+Timeline A final portfolio_exposure: 0.3686
+Timeline B final portfolio_exposure: 0.6000
+Diff at final step: 0.2314
+
+  PASS  Completes in <5 min
+  PASS  agent_logs non-empty
+  PASS  Timeline A != Timeline B
+  PASS  Steps completed = 168
+
+4/4 checks passed — PHASE 4 GATE PASSED
+```
+
+## New Files (Phase 4)
+
+```
+backend/butterfly/
+  simulation/
+    agents.py       # MarketAgent, HousingAgent, SupplyChainAgent, PolicyAgent
+    model.py        # ButterflyModel (Mesa Model)
+    runner.py       # SimulationRunner (parallel A/B)
+  models/
+    simulation.py   # SimulationRun, SimulationResult models
+  api/
+    simulation.py   # /api/v1/simulation/* routes
+backend/scripts/
+  run_test_simulation.py  # Phase 4 gate script
+backend/tests/test_simulation/
+  test_agents.py    # 6 agent reaction tests
+  test_runner.py    # 3 runner tests
 ```
