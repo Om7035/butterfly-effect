@@ -1,0 +1,36 @@
+{
+  "scenario": "COVID Semiconductor Shortage (2021-2022)",
+  "event": {
+    "event_id": "covid_supply_chain",
+    "title": "Semiconductor Shortage Declaration — 2021",
+    "source": "news",
+    "occurred_at": "2021-03-01T00:00:00Z",
+    "raw_text": "Global semiconductor shortage declared, impacting auto production and consumer electronics."
+  },
+  "causal_chain": [
+    {"from": "Semiconductor Shortage", "to": "Auto Production", "relationship": "CAUSES", "latency_hours": 0},
+    {"from": "Auto Production", "to": "Used Car Prices", "relationship": "CAUSES", "latency_hours": 168},
+    {"from": "Used Car Prices", "to": "CPI", "relationship": "INFLUENCES", "latency_hours": 720}
+  ],
+  "ground_truth": {
+    "auto_production_pct_change": -25,
+    "used_car_prices_pct_change": 30,
+    "cpi_contribution_pp": 0.4,
+    "chain_depth_minimum": 3
+  },
+  "causal_params": {
+    "SHORTAGE_AUTO": {"strength": -0.25, "latency_hours": 0, "decay": 0.002},
+    "AUTO_USEDCARS": {"strength": 1.2, "latency_hours": 168, "decay": 0.001},
+    "USEDCARS_CPI": {"strength": 0.013, "latency_hours": 720, "decay": 0.001}
+  },
+  "baseline": {
+    "AUTO_PRODUCTION": 100.0,
+    "USED_CAR_PRICES": 100.0,
+    "CPI": 100.0
+  },
+  "treatment_deltas": {
+    "AUTO_PRODUCTION": -25.0,
+    "USED_CAR_PRICES": 0.0,
+    "CPI": 0.0
+  }
+}

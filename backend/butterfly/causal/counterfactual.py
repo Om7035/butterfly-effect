@@ -154,23 +154,39 @@ class CounterfactualEngine:
     ) -> dict[str, list[float]]:
         """Generate a timeline by propagating causal effects through the chain.
 
-        Each metric's value at time t = baseline + accumulated_delta(t) + noise.
-        Deltas propagate through the causal chain with latency and very slow decay
-        so effects persist across the full horizon.
+        Uses CAUSAL_PARAMS for known Fed metrics; for other scenarios builds
+        a simple linear chain from the treatment_deltas keys in order.
         """
         timeline: dict[str, list[float]] = {m: [] for m in baseline}
-        # accumulated[metric] = total causal shift applied so far
         accumulated: dict[str, float] = {m: 0.0 for m in baseline}
 
-        # Seed the treatment shock at t=0
         if apply_treatment:
             for metric, delta in treatment_deltas.items():
                 if abs(delta) > 1e-10:
                     accumulated[metric] = delta
 
+        # Build effective params: use CAUSAL_PARAMS where available,
+        # otherwise derive a simple chain from the baseline keys
+        effective_params = dict(CAUSAL_PARAMS)
+
+        # For metrics not in CAUSAL_PARAMS, build a simple propagation chain
+        metrics = list(baseline.keys())
+        for i in range(len(metrics) - 1):
+            pair = (metrics[i], metrics[i + 1])
+            if pair not in effective_params:
+                # Derive strength from relative baseline magnitudes
+                src_base = abs(baseline[metrics[i]]) or 1.0
+                tgt_base = abs(baseline[metrics[i + 1]]) or 1.0
+                strength = tgt_base / src_base * 0.35
+                effective_params[pair] = {
+                    "strength": strength,
+                    "latency_hours": (i + 1) * 24,
+                    "decay": 0.001,
+                }
+
         for t in steps:
             if apply_treatment:
-                for (source, target), params in CAUSAL_PARAMS.items():
+                for (source, target), params in effective_params.items():
                     if source not in accumulated or target not in baseline:
                         continue
                     latency = params["latency_hours"]
@@ -182,7 +198,6 @@ class CounterfactualEngine:
                     if abs(source_shock) < 1e-10:
                         continue
                     propagated = source_shock * params["strength"] * decay_factor
-                    # Only update if this propagation is larger than current
                     if abs(propagated) > abs(accumulated.get(target, 0.0)):
                         accumulated[target] = propagated
 

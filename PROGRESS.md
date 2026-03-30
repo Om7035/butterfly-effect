@@ -11,7 +11,7 @@
 | 4 | Simulation | COMPLETE | 4/4 gate checks pass, 0.2s for 100 agents/168 steps |
 | 5 | API Layer | COMPLETE | All routes wired, Postman collection created |
 | 6 | Frontend | COMPLETE | Dashboard + demo page, TypeScript clean |
-| 7 | Validation | planned | |
+| 7 | Validation | COMPLETE | 3/3 scenarios pass, Phase 7 gate passed |
 | 8 | Launch | planned | |
 
 ## Phase 3 Validation Results (Fed 2022)
@@ -111,3 +111,38 @@ backend/tests/test_simulation/
   test_agents.py    # 6 agent reaction tests
   test_runner.py    # 3 runner tests
 ```
+
+## Phase 7 Validation Results
+
+```
+Scenario 1: 2022 Fed Rate Cycle
+  PASS  MORTGAGE30US: error 1.3%
+  PASS  HOUST: error 2.6%
+  PASS  UNRATE: error 6.7%
+  PASS  chain_depth: 10 edges
+  Result: 4/4 -- PASS
+
+Scenario 2: 2021 Texas Winter Storm
+  PASS  natgas_direction: peak +20.01
+  PASS  manufacturing_direction: peak -0.26
+  PASS  chain_depth: 3 edges
+  Result: 3/3 -- PASS
+
+Scenario 3: COVID Supply Chain Shock
+  PASS  auto_production_direction: peak -25.51
+  PASS  chain_depth: 3 edges
+  PASS  cascade: 3 nonzero metrics
+  Result: 3/3 -- PASS
+
+Overall: 3/3 scenarios passed -- PHASE 7 GATE PASSED
+```
+
+## UI Improvements (Phase 6 overhaul)
+
+- CausalGraph: force-directed layout, animated particles on edges, glowing nodes,
+  pulsing selection ring, hover effects, edge latency labels
+- TemporalScrubber: active effects strip, gradient fill, smooth drag handle
+- EvidencePanel: confidence gradient bar, causal chain cards, evidence source list
+- CounterfactualDiff: AreaChart with gradients, metric icons, delta bars
+- EventSidebar: polished cards, animated active indicator
+- globals.css: custom scrollbar, dark base, canvas transition fix

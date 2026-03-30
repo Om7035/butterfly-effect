@@ -1,0 +1,35 @@
+{
+  "scenario": "2021 Texas Winter Storm (ERCOT failure)",
+  "event": {
+    "event_id": "texas_storm_2021",
+    "title": "ERCOT Grid Failure — February 2021",
+    "source": "gdelt",
+    "occurred_at": "2021-02-10T00:00:00Z",
+    "raw_text": "Texas power grid ERCOT failed during winter storm Uri causing widespread blackouts."
+  },
+  "causal_chain": [
+    {"from": "ERCOT Grid", "to": "Natural Gas Price", "relationship": "TRIGGERS", "latency_hours": 0},
+    {"from": "Natural Gas Price", "to": "Manufacturing Output", "relationship": "CAUSES", "latency_hours": 24},
+    {"from": "Manufacturing Output", "to": "Employment", "relationship": "INFLUENCES", "latency_hours": 168}
+  ],
+  "ground_truth": {
+    "natural_gas_price_pct_change": 800,
+    "manufacturing_output_pct_change": -35,
+    "chain_depth_minimum": 3
+  },
+  "causal_params": {
+    "ERCOT_NATGAS": {"strength": 8.0, "latency_hours": 0, "decay": 0.05},
+    "NATGAS_MANUFACTURING": {"strength": -0.35, "latency_hours": 24, "decay": 0.02},
+    "MANUFACTURING_EMPLOYMENT": {"strength": -0.15, "latency_hours": 168, "decay": 0.01}
+  },
+  "baseline": {
+    "NATGAS": 2.5,
+    "MANUFACTURING": 100.0,
+    "EMPLOYMENT": 95.0
+  },
+  "treatment_deltas": {
+    "NATGAS": 20.0,
+    "MANUFACTURING": 0.0,
+    "EMPLOYMENT": 0.0
+  }
+}
