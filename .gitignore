@@ -64,3 +64,6 @@ postgres_data/
 # Kiro IDE settings (may contain API keys)
 .kiro/settings/mcp.json
 .kiro/settings/
+
+# Launch posts (internal — not for public repo)
+docs/launch/
