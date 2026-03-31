@@ -95,10 +95,9 @@ async def fetch_wikipedia(queries: list[str]) -> list[RawEvidence]:
 # ── DuckDuckGo (zero setup, no key, live web search) ─────────────────────────
 
 async def fetch_duckduckgo(queries: list[str]) -> list[RawEvidence]:
-    """Fetch live web search results via DuckDuckGo (no API key needed)."""
+    """Fetch live web search results via DuckDuckGo, then expand top results with Trafilatura."""
     results: list[RawEvidence] = []
     try:
-        # Support both old and new package names
         try:
             from ddgs import DDGS
         except ImportError:
@@ -114,20 +113,62 @@ async def fetch_duckduckgo(queries: list[str]) -> list[RawEvidence]:
             def _search(query=q):
                 with DDGS() as ddgs:
                     return list(ddgs.text(query, max_results=5))
-
             hits = await loop.run_in_executor(None, _search)
             for hit in hits:
+                url = hit.get("href", "")
+                snippet = hit.get("body", "")[:500]
+                title = hit.get("title", "")[:200]
+
+                # Try to expand snippet to full article text with Trafilatura
+                full_text = await _fetch_full_text(url, loop)
+                content = full_text if full_text else snippet
+
                 results.append(RawEvidence(
                     source="duckduckgo",
-                    title=hit.get("title", "")[:200],
-                    content=hit.get("body", "")[:500],
-                    url=hit.get("href"),
+                    title=title,
+                    content=content,
+                    url=url,
                     domain_tags=["news", "general"],
                 ))
         except Exception as e:
             logger.debug(f"DuckDuckGo search failed for '{q}': {e}")
 
     return results
+
+
+async def _fetch_full_text(url: str, loop=None) -> str | None:
+    """Fetch and extract full article text from a URL using Trafilatura.
+
+    Trafilatura is the fastest open-source article extractor — no headless browser,
+    pure HTML parsing, strips ads/nav/footers, returns clean article text.
+    Falls back to None if extraction fails (caller uses snippet instead).
+    """
+    if not url or not url.startswith("http"):
+        return None
+    try:
+        import trafilatura
+        if loop is None:
+            loop = asyncio.get_event_loop()
+
+        def _extract():
+            downloaded = trafilatura.fetch_url(url)
+            if not downloaded:
+                return None
+            text = trafilatura.extract(
+                downloaded,
+                include_comments=False,
+                include_tables=False,
+                no_fallback=False,
+                favor_precision=True,
+            )
+            return text[:800] if text else None
+
+        return await asyncio.wait_for(
+            loop.run_in_executor(None, _extract),
+            timeout=4.0,  # 4s max per URL — don't block the pipeline
+        )
+    except Exception:
+        return None
 
 
 # ── FRED (free, needs FRED_API_KEY) ──────────────────────────────────────────
