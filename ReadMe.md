@@ -2,7 +2,7 @@
 
 # 🦋 butterfly-effect
 
-### Type any world event. See the causal chain nobody else sees.
+### You type an event. It shows you every consequence — including the ones nobody is talking about yet.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Stars](https://img.shields.io/github/stars/Om7035/butterfly-effect?style=social)](https://github.com/Om7035/butterfly-effect)
@@ -13,9 +13,15 @@
 
 ---
 
-> **butterfly-effect** is an open-source causal chain engine. Type any event in plain English — a war, a rate hike, a hurricane, a product launch. It traces the cascade of effects across domains, out to the 3rd and 4th order, with timing and confidence scores.
->
-> It's not a chatbot. It doesn't predict the future. It shows you the structural chain that's already in motion — the one most analysts miss because they stop at the first-order effect.
+## What does this do?
+
+You type any real-world event — a war, a rate hike, a hurricane, a product launch.
+
+The tool traces **what happens next** — not just the obvious first effect, but the chain of consequences that follows. It goes 3, 4, even 5 steps deep, with timing and confidence at each step.
+
+> Think of it like this: most people see "Fed raises rates → mortgage rates go up." This tool shows you the full chain — all the way to construction job losses 30 days later, and why that matters.
+
+It's not a prediction tool. It shows you the **structural chain that's already in motion** — the one most analysts miss because they stop too early.
 
 ---
 
@@ -30,7 +36,7 @@ pip install fastapi uvicorn pydantic-settings loguru httpx google-genai mistrala
 Add a free LLM key to `backend/.env` — get one at [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) in 30 seconds:
 
 ```env
-LLM_API_KEY=your-key-here
+GEMINI_API_KEY=your-key-here
 ```
 
 ```bash
@@ -48,56 +54,94 @@ Open `http://localhost:3000` and type anything.
 
 ---
 
-## What it actually does
+## How to read the output
+
+When you type a question, you get back a **causal chain** — a sequence of cause-and-effect steps, each with a time delay and a confidence score.
+
+Here's how to read it:
+
+```
+Event (what you typed)
+  └─► 1st order effect   [happens in hours]     — the obvious one
+        └─► 2nd order effect   [happens in days]      — what most people see
+              └─► 3rd order effect   [happens in weeks]     — what most people miss
+                    └─► 4th order effect   [happens in months]   — what nobody is talking about
+```
+
+Each step shows:
+- **What changed** — the variable or system that was affected
+- **When** — how long after the original event
+- **Confidence** — how strongly the simulation supports this connection (0 to 1)
+
+---
+
+## Example 1: A central bank raises interest rates
+
+**Question typed:** `Fed raises rates 75bps — June 2022`
+
+**How to read this:** Each arrow is one step in the chain. The further down you go, the less obvious the connection — and the more valuable the insight.
+
+```
+Fed raises rates 75bps
+  └─► Treasury yields spike +75bps          [2 hours later]    confidence: 0.95
+        └─► Mortgage rates rise +92bps       [48 hours later]   confidence: 0.87
+              └─► Housing construction drops -247k units  [1 week later]    confidence: 0.72  ← 3rd order
+                    └─► Construction workers laid off     [30 days later]   confidence: 0.54  ← 4th order
+```
+
+**Key insight:** The job losses in construction show up in government data 30 days after the rate hike. Most economists attribute this to "the economy slowing down." This tool traces it back to a single FOMC meeting — with the exact delay at each step.
+
+---
+
+## Example 2: A conflict breaks out in the Middle East
+
+**Question typed:** `Hamas attacks Israel — October 7, 2023`
+
+**How to read this:** The chain crosses multiple domains — military, energy, shipping, inflation. Each hop is a different industry being affected.
+
+```
+Hamas attacks Israel
+  └─► Oil prices spike +8.3%                [6 hours later]    confidence: 0.82
+  └─► Red Sea shipping routes disrupted     [3 days later]     confidence: 0.71
+        └─► Suez Canal traffic drops -40%   [4 days later]     confidence: 0.85  ← 3rd order
+              └─► EU energy prices rise +28%  [1 week later]   confidence: 0.63  ← 3rd order
+                    └─► EU inflation restarts  [30 days later]  confidence: 0.58  ← 4th order
+```
+
+**Key insight:** The ECB declared victory on inflation in September 2023. One month later, a conflict in Gaza restarted the energy price mechanism — via a chain that ran through Houthi attacks on shipping, Suez Canal disruption, and LNG prices. This showed up in European inflation data in early 2024. The chain was traceable from day one.
+
+---
+
+## Why would I use this?
+
+- **You're trying to understand ripple effects** — "If X happens, what else gets affected and when?"
+- **You're doing second-order thinking** — "Everyone knows the obvious consequence. What's the non-obvious one?"
+- **You're researching a topic** — "What are all the systems connected to this event?"
+- **You're building a model or report** — "What evidence supports each step in this chain?"
+
+It works for any domain: economics, geopolitics, climate, technology, health, supply chains.
+
+---
+
+## How it works
 
 ```mermaid
 flowchart LR
-    A([Your Question]) --> B[LLM Parsing\ndomains · actors · severity]
-    B --> C[Evidence Fetch\nWikipedia · FRED · DuckDuckGo\nWorld Bank · GDELT · ReliefWeb]
-    C --> D[Causal DAG\ndomain template + evidence]
+    A([Your Question]) --> B[LLM Parsing\ndomains and actors]
+    B --> C[Evidence Fetch\nWikipedia, FRED, DuckDuckGo\nWorld Bank, GDELT, ReliefWeb]
+    C --> D[Causal Graph\ndomain template plus evidence]
     D --> E[Parallel Simulation\nTimeline A vs Timeline B]
-    E --> F[Chain Extraction\nhops · timing · confidence]
-    F --> G([Causal Chain\n+ Insights])
+    E --> F[Chain Extraction\nhops, timing, confidence]
+    F --> G([Causal Chain\nplus Insights])
 
     style A fill:#1a1a2e,color:#e2e8f0,stroke:#7c3aed
     style G fill:#1a1a2e,color:#e2e8f0,stroke:#34d399
     style E fill:#0f172a,color:#a78bfa,stroke:#7c3aed
 ```
 
-The simulation runs 96 agent-steps in **~0.01 seconds**. Total pipeline: under 45 seconds for any question.
+The key step is the **parallel simulation**: the system runs two versions of the world — one where your event happens, one where it doesn't — then compares them. The difference is the true causal impact at each point in time.
 
----
-
-## The output that makes people share this
-
-**Input:** `Hamas attacks Israel — October 7, 2023`
-
-| Hop | Time | Cause → Effect | Confidence | Order |
-|-----|------|----------------|------------|-------|
-| 1 | `t+2h` | Hamas attack → IDF mobilization | 0.97 | 1st — obvious |
-| 2 | `t+6h` | IDF → Brent crude +8.3% via Hormuz risk premium | 0.82 | 2nd — most analysts stop here |
-| 3 | `t+72h` | IDF → Red Sea shipping reroutes (Houthi response) | 0.71 | 2nd — adds 14 days to EU-Asia transit |
-| 4 | `t+96h` | Red Sea → Suez Canal traffic **-40%** | 0.85 | 3rd |
-| 5 | `t+168h` | Suez → EU LNG spot prices **+28%** | 0.63 | **3rd order** ⚠️ |
-| 6 | `t+720h` | LNG spike → EU energy inflation **re-accelerates** | 0.58 | **4th order** ⚠️ |
-
-> **What most people missed:** The ECB declared "mission accomplished" on inflation in September 2023. The October 7 attack restarted the energy price transmission mechanism via a 6-hop chain with a 30-day lag. This showed up in Eurostat HICP data in Q1 2024. The chain was traceable from day one. No Bloomberg terminal connected these dots in October 2023.
-
----
-
-## Second domain: AI disruption
-
-**Input:** `OpenAI releases model that outperforms all human experts`
-
-| Hop | Time | Cause → Effect | Confidence | Order |
-|-----|------|----------------|------------|-------|
-| 1 | `t+48h` | AI capability → VC investment flood ($200B) | 0.91 | 1st |
-| 2 | `t+168h` | VC → AI infrastructure buildout, GPU shortage | 0.88 | 2nd |
-| 3 | `t+336h` | AI → white-collar employment renegotiated | 0.74 | **3rd order** ⚠️ |
-| 4 | `t+720h` | Employment disruption → AI regulation pressure | 0.61 | **4th order** ⚠️ |
-| 5 | `t+1440h` | Regulatory arbitrage → AI companies incorporate in Singapore | 0.52 | **5th order** ⚠️ |
-
-> **What most people missed:** The 5th-order effect — regulatory arbitrage to Singapore — is already visible in company incorporation data. It started 14 months after the GPT-4 launch. The chain was predictable from day one.
+Total time: under 45 seconds for any question.
 
 ---
 
@@ -109,7 +153,7 @@ curl -X POST http://localhost:8000/api/v1/analyze \
   -d '{"question": "China invades Taiwan"}'
 ```
 
-The response is a **Server-Sent Events stream** — watch the chain build in real time, stage by stage.
+The response streams in real time as each stage completes.
 
 ---
 
@@ -118,24 +162,24 @@ The response is a **Server-Sent Events stream** — watch the chain build in rea
 ```
 butterfly-effect/
 ├── backend/butterfly/
-│   ├── api/           # FastAPI routes — analyze (SSE), demo, events, simulation
+│   ├── api/           # FastAPI routes — analyze (SSE stream), demo, events
 │   ├── llm/           # Multi-provider LLM router (auto-selects best available)
 │   ├── ingestion/     # 8 parallel evidence fetchers
-│   ├── causal/        # DAG builder · identification · synthetic control · extractor
-│   ├── simulation/    # Mesa ABM — domain-agnostic agents + universal model
-│   ├── pipeline/      # Orchestrator — wires all stages, streams SSE progress
-│   └── db/            # Neo4j · Postgres · Redis (all optional, graceful degradation)
+│   ├── causal/        # DAG builder, identification, synthetic control, extractor
+│   ├── simulation/    # Agent-based model — domain-specific agents, parallel timelines
+│   ├── pipeline/      # Orchestrator — wires all stages, streams progress
+│   └── db/            # Neo4j, Postgres, Redis (all optional — degrades gracefully)
 │
 └── frontend/
-    ├── app/           # Next.js 14 — / · /demo · /graph-demo
-    └── components/    # React Flow graph · insight cards · temporal replay
+    ├── app/           # Next.js 14 pages
+    └── components/    # React Flow graph, insight cards, temporal replay
 ```
 
-**Design principles:**
+**Key design decisions:**
 - Every stage is independently catchable — partial results always returned, never a crash
 - No database required — all DBs optional, pipeline degrades gracefully
 - LLM called exactly twice per analysis: parse + insights. Everything else is pure math
-- Evidence fetching is fully parallel — all 8 sources run concurrently with 5s timeout
+- All 8 evidence sources run in parallel with a 5-second timeout each
 
 **Stack:** `FastAPI` · `Python 3.10+` · `Next.js 14` · `React Flow` · `Framer Motion` · `Mesa` · `NetworkX` · `scipy` · `statsmodels`
 
@@ -143,27 +187,25 @@ butterfly-effect/
 
 ## Algorithms
 
-This is the part most READMEs skip.
-
 ### Causal DAG construction — `causal/dag.py`
 
-Five domain templates validated against academic literature, merged with event-specific graph edges:
+Five domain templates validated against academic literature:
 
-| Template | Domain | Academic source |
-|----------|--------|-----------------|
+| Template | Domain | Source |
+|----------|--------|--------|
 | `FINANCIAL_TEMPLATE` | economics, finance | Bernanke (2005) monetary transmission |
 | `GEOPOLITICAL_TEMPLATE` | geopolitics, military | Collier & Hoeffler (2004) conflict economics |
 | `CLIMATE_TEMPLATE` | climate, environment | IPCC AR6 (2021) impact pathways |
 | `PANDEMIC_TEMPLATE` | health | Ferguson et al. (2020), Eichenbaum et al. (2021) |
 | `TECH_DISRUPTION_TEMPLATE` | technology | Brynjolfsson & McAfee (2014) |
 
-Each edge carries `latency_hours`, `confidence`, and a plain-English `mechanism`. Cycle detection uses iterative DFS — weakest edge (lowest confidence) removed on each cycle found.
+Each edge carries `latency_hours`, `confidence`, and a plain-English `mechanism`. Cycle detection uses iterative DFS — weakest edge removed on each cycle found.
 
 ---
 
 ### Causal identification — `causal/identification.py`
 
-`UniversalCausalEstimator` auto-selects the correct statistical estimator by outcome type:
+Auto-selects the correct statistical estimator by outcome type:
 
 | Outcome type | Estimator | Reference |
 |-------------|-----------|-----------|
@@ -173,10 +215,7 @@ Each edge carries `latency_hours`, `confidence`, and a plain-English `mechanism`
 | Ordinal (stability scores) | Ordered logit — proportional odds | McCullagh (1980) |
 | Rate (%, infection rate) | OLS on logit-transformed outcome | Papke & Wooldridge (1996) |
 
-When DoWhy is available, three automated refutation tests run:
-- **Random common cause** — adds noise confounder; effect must be stable
-- **Placebo treatment** — permutes treatment; effect must disappear
-- **Data subset** — re-estimates on 80% of data; effect must be stable (±20%)
+Three automated refutation tests run when DoWhy is available: random common cause, placebo treatment, data subset.
 
 ---
 
@@ -186,11 +225,11 @@ Pure Python/scipy implementation of Abadie & Gardeazabal (2003). No R required.
 
 ```mermaid
 flowchart TD
-    A[Pre-treatment data\ntreated + controls] --> B[SLSQP optimization\nminimize residuals\nW ge 0 and sum to 1]
-    B --> C[Synthetic counterfactual\ncontrols times W]
-    C --> D[ATE = mean of\nactual minus synthetic\npost-treatment]
-    D --> E[In-space placebo tests\np-value = fraction of placebos\nwith ATE >= treated ATE]
-    E --> F{Pre-treatment R2 >= 0.80?}
+    A[Pre-treatment data\ntreated and controls] --> B[SLSQP optimization\nminimize residuals\nweights sum to 1 and are non-negative]
+    B --> C[Synthetic counterfactual\ncontrols weighted combination]
+    C --> D[ATE = mean difference\nactual minus synthetic post-treatment]
+    D --> E[In-space placebo tests\np-value from placebo distribution]
+    E --> F{Pre-treatment R2 above 0.80?}
     F -->|Yes| G[is_trustworthy = True]
     F -->|No| H[interpret with caution]
 
@@ -207,28 +246,23 @@ Mesa ABM. Each agent has trigger conditions and one of four reaction formulas:
 | Formula | Behavior | Use case |
 |---------|----------|----------|
 | `linear` | Constant delta per step | Steady policy effects |
-| `exponential` | Peaks immediately, decays with half-life ~10 steps | Market reactions |
+| `exponential` | Peaks immediately, decays over time | Market reactions |
 | `step` | Immediate jump, then flat | Threshold events |
-| `sigmoid` | Slow start → fast middle → plateau | Adoption curves |
+| `sigmoid` | Slow start, fast middle, plateau | Adoption curves |
 
-Timeline A (event signal applied) and Timeline B (counterfactual baseline) run concurrently in a thread pool. `diff = A(t) - B(t)` is the true causal impact at each timestep.
+Timeline A (event) and Timeline B (no event) run concurrently. `diff = A(t) - B(t)` is the true causal impact.
 
 ---
 
 ### Causal chain extraction — `causal/log_extractor.py`
 
-After simulation, `CausalLogExtractor` builds the ordered chain:
+After simulation, builds the ordered chain:
 
-1. Groups simulation log by `variable_changed`
-2. Computes `diff_series[var][step] = A(step,var) − B(step,var)`
-3. `step_triggered` = first step where `|diff| > 2%` (divergence threshold)
-4. Assigns each hop to the responsible agent
-5. `magnitude = |max_delta| / (|baseline| + |max_delta|)` — normalized [0,1]
-6. `persistence = fraction of steps where |delta| > 1%`
-7. `confidence = 0.4 × log_count + 0.4 × magnitude + 0.2 × persistence`
-8. Feedback loop detection via NetworkX `simple_cycles`
-
-Hops sorted by `step_triggered` = causal order.
+1. Groups simulation log by variable changed
+2. Finds first step where `|A - B| > 2%` — this is when the effect becomes real
+3. Assigns each hop to the responsible agent
+4. Scores confidence: `0.4 × log_count + 0.4 × magnitude + 0.2 × persistence`
+5. Detects feedback loops via NetworkX cycle detection
 
 ---
 
@@ -256,7 +290,7 @@ flowchart LR
 
 ## Evidence sources
 
-All 8 sources run in parallel. Each has a 5-second timeout — if one fails, the others continue.
+All 8 sources run in parallel. Each has a 5-second timeout.
 
 | Source | Key required | What it provides |
 |--------|-------------|-----------------|
@@ -308,7 +342,6 @@ git push origin feat/domain-cryptocurrency
 - Found a wrong causal chain? Open an issue — use the [validation report template](.github/ISSUE_TEMPLATE/validation_report.md)
 - Want a new domain? Use the [domain request template](.github/ISSUE_TEMPLATE/new_domain_request.md)
 - Add a new free evidence source — any API that returns structured data
-- Improve the graph visualization — React Flow, lots of room to grow
 
 ---
 
