@@ -67,3 +67,4 @@ postgres_data/
 
 # Launch posts (internal — not for public repo)
 docs/launch/
+PROMPT_FIX.md

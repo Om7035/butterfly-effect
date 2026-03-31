@@ -24,6 +24,36 @@ from pydantic import BaseModel, Field
 
 from butterfly.db.redis import get_cache, set_cache
 
+
+# ── Data quality gate ─────────────────────────────────────────────────────────
+
+class DataQualityGate:
+    """Validates data quality at each pipeline stage. Warns but never hard-fails."""
+
+    MIN_EVIDENCE = 5
+    MIN_HOPS = 3
+
+    def check_evidence(self, evidence: list) -> None:
+        if len(evidence) < self.MIN_EVIDENCE:
+            logger.warning(
+                f"[QUALITY] Only {len(evidence)} evidence items (target: {self.MIN_EVIDENCE}+). "
+                f"Chain may be shallow. Check API keys or add more data sources."
+            )
+
+    def check_simulation(self, steps: int) -> None:
+        if steps < 48:
+            logger.warning(
+                f"[QUALITY] Simulation only ran {steps} steps (target: 96+). "
+                f"Check universal_model.py for early termination."
+            )
+
+    def check_chain(self, hops: int) -> None:
+        if hops < self.MIN_HOPS:
+            logger.warning(
+                f"[QUALITY] Causal chain has {hops} hops (target: {self.MIN_HOPS}+). "
+                f"Consider adding domain templates or more agent types."
+            )
+
 # ── Stage constants ───────────────────────────────────────────────────────────
 
 STAGES = [
@@ -96,6 +126,7 @@ class AnalysisPipeline:
         run_id = f"run_{uuid.uuid4().hex[:10]}"
         t_start = time.perf_counter()
         errors: list[str] = []
+        quality = DataQualityGate()
 
         logger.info(f"[{run_id}] Pipeline start: '{raw_input[:80]}'")
 
@@ -149,6 +180,7 @@ class AnalysisPipeline:
                 message=f"Collected {len(evidence)} evidence items",
                 partial_result={"evidence_count": len(evidence)},
             )
+            quality.check_evidence(evidence)
         except Exception as e:
             msg = f"Evidence fetch partial: {e}"
             logger.warning(f"[{run_id}] {msg}")
@@ -252,6 +284,7 @@ class AnalysisPipeline:
                         f"{len(simulation_diff)} diverging variables",
                 partial_result={"n_agents": n_agents, "diverging_vars": len(simulation_diff)},
             )
+            quality.check_simulation(sim_result.steps_completed)
         except Exception as e:
             msg = f"Simulation failed: {e}"
             logger.warning(f"[{run_id}] {msg}")

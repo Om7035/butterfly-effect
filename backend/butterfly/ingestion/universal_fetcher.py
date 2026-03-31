@@ -413,27 +413,144 @@ async def fetch_news_api(queries: list[str]) -> list[RawEvidence]:
     return results
 
 
+# ── RSS feeds (free, real-time, no key) ──────────────────────────────────────
+
+_RSS_FEEDS: dict[str, list[str]] = {
+    "geopolitics": [
+        "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "https://www.aljazeera.com/xml/rss/all.xml",
+    ],
+    "economics": [
+        "https://feeds.bbci.co.uk/news/business/rss.xml",
+    ],
+    "technology": [
+        "https://techcrunch.com/feed/",
+        "https://feeds.arstechnica.com/arstechnica/index",
+    ],
+    "health": [
+        "https://feeds.bbci.co.uk/news/health/rss.xml",
+        "https://www.who.int/rss-feeds/news-english.xml",
+    ],
+    "climate": [
+        "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    ],
+}
+
+
+async def fetch_rss(queries: list[str], domains: list[str] | None = None) -> list[RawEvidence]:
+    """Fetch RSS feeds filtered by keyword relevance. Free, no key, real-time."""
+    try:
+        import feedparser
+    except ImportError:
+        logger.debug("feedparser not installed, skipping RSS")
+        return []
+
+    feed_urls: list[str] = []
+    for domain in (domains or []):
+        feed_urls.extend(_RSS_FEEDS.get(domain, []))
+    if not feed_urls:
+        feed_urls = _RSS_FEEDS["geopolitics"] + _RSS_FEEDS["economics"]
+    feed_urls = list(set(feed_urls))[:6]
+
+    keywords_lower = [q.lower() for q in queries]
+    results: list[RawEvidence] = []
+
+    loop = asyncio.get_event_loop()
+
+    def _parse(url: str) -> list:
+        try:
+            return feedparser.parse(url).entries[:8]
+        except Exception:
+            return []
+
+    all_entries = []
+    for url in feed_urls:
+        entries = await loop.run_in_executor(None, _parse, url)
+        all_entries.extend(entries)
+
+    for entry in all_entries:
+        title = entry.get("title", "")
+        summary = entry.get("summary", "")
+        combined = (title + " " + summary).lower()
+        if not any(kw in combined for kw in keywords_lower):
+            continue
+        results.append(RawEvidence(
+            source="rss",
+            title=title[:200],
+            content=summary[:500],
+            url=entry.get("link", ""),
+            domain_tags=domains or ["news"],
+        ))
+
+    logger.debug(f"RSS: {len(results)} relevant articles from {len(feed_urls)} feeds")
+    return results
+
+
+# ── OpenAlex (academic papers — free, no key) ─────────────────────────────────
+
+async def fetch_openalex(queries: list[str]) -> list[RawEvidence]:
+    """Fetch well-cited academic papers from OpenAlex. Free, no key required."""
+    results: list[RawEvidence] = []
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        for q in queries[:2]:
+            try:
+                r = await client.get(
+                    "https://api.openalex.org/works",
+                    params={
+                        "search": q,
+                        "filter": "cited_by_count:>30",
+                        "sort": "cited_by_count:desc",
+                        "per-page": 4,
+                        "select": "title,abstract_inverted_index,doi,publication_year,cited_by_count",
+                    },
+                    headers={"User-Agent": "butterfly-effect/0.4 (mailto:research@butterfly-effect.dev)"},
+                )
+                if r.status_code != 200:
+                    continue
+                for work in r.json().get("results", []):
+                    title = work.get("title", "")
+                    abstract_index = work.get("abstract_inverted_index") or {}
+                    if abstract_index:
+                        words = {pos: word for word, positions in abstract_index.items() for pos in positions}
+                        abstract = " ".join(words[i] for i in sorted(words.keys()))[:500]
+                    else:
+                        abstract = ""
+                    if not abstract or not title:
+                        continue
+                    results.append(RawEvidence(
+                        source="openalex",
+                        title=title[:200],
+                        content=f"[{work.get('publication_year')}, {work.get('cited_by_count')} citations] {abstract}",
+                        url=f"https://doi.org/{work.get('doi', '')}" if work.get("doi") else None,
+                        relevance_score=0.9,
+                        domain_tags=["research", "academic"],
+                    ))
+            except Exception as e:
+                logger.debug(f"OpenAlex fetch failed for '{q}': {e}")
+    logger.debug(f"OpenAlex: {len(results)} papers")
+    return results
+
+
 # ── Domain → fetcher routing ──────────────────────────────────────────────────
 
 DOMAIN_FETCHER_MAP: dict[str, list] = {
-    "geopolitics":       [fetch_duckduckgo, fetch_gdelt, fetch_reliefweb, fetch_acled, fetch_wikipedia],
-    "military":          [fetch_acled, fetch_gdelt, fetch_duckduckgo, fetch_wikipedia],
-    "economics":         [fetch_fred, fetch_world_bank, fetch_duckduckgo, fetch_wikipedia],
-    "financial_markets": [fetch_fred, fetch_duckduckgo, fetch_wikipedia, fetch_world_bank],
-    "energy":            [fetch_fred, fetch_duckduckgo, fetch_gdelt, fetch_wikipedia],
-    "climate":           [fetch_open_meteo, fetch_duckduckgo, fetch_wikipedia, fetch_reliefweb],
-    "environment":       [fetch_open_meteo, fetch_duckduckgo, fetch_wikipedia],
-    "technology":        [fetch_duckduckgo, fetch_wikipedia],
-    "health":            [fetch_reliefweb, fetch_duckduckgo, fetch_wikipedia],
-    "humanitarian":      [fetch_reliefweb, fetch_acled, fetch_duckduckgo, fetch_world_bank],
-    "logistics":         [fetch_duckduckgo, fetch_wikipedia, fetch_world_bank],
-    "trade":             [fetch_fred, fetch_world_bank, fetch_duckduckgo, fetch_wikipedia],
-    "political":         [fetch_duckduckgo, fetch_gdelt, fetch_wikipedia],
-    "social":            [fetch_duckduckgo, fetch_wikipedia],
-    "cultural":          [fetch_duckduckgo, fetch_wikipedia],
+    "geopolitics":       [fetch_duckduckgo, fetch_rss, fetch_gdelt, fetch_reliefweb, fetch_acled, fetch_wikipedia],
+    "military":          [fetch_acled, fetch_gdelt, fetch_duckduckgo, fetch_rss, fetch_wikipedia],
+    "economics":         [fetch_fred, fetch_world_bank, fetch_duckduckgo, fetch_rss, fetch_wikipedia, fetch_openalex],
+    "financial_markets": [fetch_fred, fetch_duckduckgo, fetch_rss, fetch_wikipedia, fetch_world_bank],
+    "energy":            [fetch_fred, fetch_duckduckgo, fetch_rss, fetch_gdelt, fetch_wikipedia],
+    "climate":           [fetch_open_meteo, fetch_duckduckgo, fetch_rss, fetch_wikipedia, fetch_reliefweb, fetch_openalex],
+    "environment":       [fetch_open_meteo, fetch_duckduckgo, fetch_rss, fetch_wikipedia],
+    "technology":        [fetch_duckduckgo, fetch_rss, fetch_wikipedia, fetch_openalex],
+    "health":            [fetch_reliefweb, fetch_duckduckgo, fetch_rss, fetch_wikipedia, fetch_openalex, fetch_world_bank],
+    "humanitarian":      [fetch_reliefweb, fetch_acled, fetch_duckduckgo, fetch_rss, fetch_world_bank],
+    "logistics":         [fetch_duckduckgo, fetch_rss, fetch_wikipedia, fetch_world_bank],
+    "trade":             [fetch_fred, fetch_world_bank, fetch_duckduckgo, fetch_rss, fetch_wikipedia],
+    "political":         [fetch_duckduckgo, fetch_rss, fetch_gdelt, fetch_wikipedia],
+    "social":            [fetch_duckduckgo, fetch_rss, fetch_wikipedia],
+    "cultural":          [fetch_duckduckgo, fetch_rss, fetch_wikipedia],
 }
-
-_DEFAULT_FETCHERS = [fetch_duckduckgo, fetch_wikipedia]
+_DEFAULT_FETCHERS = [fetch_duckduckgo, fetch_wikipedia, fetch_rss]
 
 
 # ── UniversalFetcher ──────────────────────────────────────────────────────────
@@ -464,7 +581,13 @@ class UniversalFetcher:
 
         logger.info(f"Fetching evidence: {len(fetcher_set)} sources for domains {event.domain}")
 
-        tasks = [fn(event.data_fetch_queries) for fn in fetcher_set]
+        tasks = []
+        for fn in fetcher_set:
+            # RSS needs domains for feed selection
+            if fn.__name__ == "fetch_rss":
+                tasks.append(fn(event.data_fetch_queries, event.domain))
+            else:
+                tasks.append(fn(event.data_fetch_queries))
         results_nested = await asyncio.gather(*tasks, return_exceptions=True)
 
         all_results: list[RawEvidence] = []

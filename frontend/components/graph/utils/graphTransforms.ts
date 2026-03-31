@@ -1,4 +1,5 @@
 import { Node, Edge } from 'reactflow';
+import dagre from '@dagrejs/dagre';
 
 export interface CausalChainData {
   nodes: Array<{
@@ -13,7 +14,7 @@ export interface CausalChainData {
     unit?: string;
     confidence?: number;
     entityType?: 'company' | 'person' | 'sector';
-  subtype?: string;
+    subtype?: string;
     status?: 'active' | 'pending' | 'inactive';
   }>;
   edges: Array<{
@@ -31,11 +32,9 @@ export function transformToReactFlowData(data: CausalChainData): {
   nodes: Node[];
   edges: Edge[];
 } {
-  // Transform nodes with automatic positioning
   const nodes: Node[] = data.nodes.map((node, index) => {
     const angle = (index / data.nodes.length) * 2 * Math.PI;
     const radius = 300;
-    
     return {
       id: node.id,
       type: node.type,
@@ -43,13 +42,10 @@ export function transformToReactFlowData(data: CausalChainData): {
         x: 400 + radius * Math.cos(angle),
         y: 300 + radius * Math.sin(angle),
       },
-      data: {
-        ...node,
-      },
+      data: { ...node },
     };
   });
 
-  // Transform edges
   const edges: Edge[] = data.edges.map((edge) => ({
     id: edge.id,
     source: edge.source,
@@ -65,59 +61,49 @@ export function transformToReactFlowData(data: CausalChainData): {
   return { nodes, edges };
 }
 
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 60;
+
+/**
+ * Dagre hierarchical layout — clean top-to-bottom DAG.
+ * Replaces the manual topological sort with proper Sugiyama-style layout.
+ */
 export function applyHierarchicalLayout(nodes: Node[], edges: Edge[]): Node[] {
-  // Simple hierarchical layout (top to bottom)
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-  const inDegree = new Map<string, number>();
-  const outEdges = new Map<string, string[]>();
+  if (nodes.length === 0) return nodes;
 
-  // Calculate in-degrees
-  nodes.forEach(n => {
-    inDegree.set(n.id, 0);
-    outEdges.set(n.id, []);
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({
+    rankdir: 'TB',      // top-to-bottom
+    nodesep: 60,        // horizontal gap between nodes in same rank
+    ranksep: 100,       // vertical gap between ranks
+    marginx: 40,
+    marginy: 40,
+    acyclicer: 'greedy',
+    ranker: 'network-simplex',
+  });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  nodes.forEach((node) => {
+    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
   });
 
-  edges.forEach(e => {
-    inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
-    outEdges.get(e.source)?.push(e.target);
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  edges.forEach((edge) => {
+    if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
+      g.setEdge(edge.source, edge.target);
+    }
   });
 
-  // Topological sort to determine levels
-  const levels: string[][] = [];
-  const queue: string[] = [];
-  
-  inDegree.forEach((degree, nodeId) => {
-    if (degree === 0) queue.push(nodeId);
-  });
+  dagre.layout(g);
 
-  while (queue.length > 0) {
-    const levelNodes = [...queue];
-    levels.push(levelNodes);
-    queue.length = 0;
-
-    levelNodes.forEach(nodeId => {
-      outEdges.get(nodeId)?.forEach(targetId => {
-        const newDegree = (inDegree.get(targetId) || 0) - 1;
-        inDegree.set(targetId, newDegree);
-        if (newDegree === 0) queue.push(targetId);
-      });
-    });
-  }
-
-  // Position nodes
-  const levelHeight = 200;
-  const nodeSpacing = 250;
-
-  return nodes.map(node => {
-    const levelIndex = levels.findIndex(level => level.includes(node.id));
-    const positionInLevel = levels[levelIndex]?.indexOf(node.id) || 0;
-    const levelWidth = (levels[levelIndex]?.length || 1) * nodeSpacing;
-
+  return nodes.map((node) => {
+    const pos = g.node(node.id);
+    if (!pos) return node;
     return {
       ...node,
       position: {
-        x: positionInLevel * nodeSpacing - levelWidth / 2 + 400,
-        y: levelIndex * levelHeight + 100,
+        x: pos.x - NODE_WIDTH / 2,
+        y: pos.y - NODE_HEIGHT / 2,
       },
     };
   });
