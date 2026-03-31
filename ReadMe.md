@@ -79,17 +79,39 @@ Each step shows:
 
 **Question typed:** `Fed raises rates 75bps — June 2022`
 
-**How to read this:** Each arrow is one step in the chain. The further down you go, the less obvious the connection — and the more valuable the insight.
+**How to read this:** Each numbered step is one consequence. The "Why" explains the causal mechanism. The domain shows which sector is affected. The timing shows when it happens.
 
 ```
-Fed raises rates 75bps
-  └─► Treasury yields spike +75bps          [2 hours later]    confidence: 0.95
-        └─► Mortgage rates rise +92bps       [48 hours later]   confidence: 0.87
-              └─► Housing construction drops -247k units  [1 week later]    confidence: 0.72  ← 3rd order
-                    └─► Construction workers laid off     [30 days later]   confidence: 0.54  ← 4th order
-```
+Step 1 │ Finance │ Immediate
+  What:  Investment portfolios rebalance
+  Why:   Investors reduce risk exposure as higher rates make bonds more attractive than stocks
 
-**Key insight:** The job losses in construction show up in government data 30 days after the rate hike. Most economists attribute this to "the economy slowing down." This tool traces it back to a single FOMC meeting — with the exact delay at each step.
+Step 2 │ Finance │ 2 days later
+  What:  Bond yields rise
+  Why:   Bond markets reprice based on new rate expectations
+  Confidence: High
+
+Step 3 │ Finance │ 2 days later
+  What:  Mortgage rates rise
+  Why:   Banks pass higher funding costs to borrowers
+  Confidence: High
+
+Step 4 │ Real Estate │ 1 week later
+  What:  Housing construction drops
+  Why:   Higher borrowing costs make new construction less viable for builders
+  Confidence: Medium  ← 3rd order effect
+
+Step 5 │ Labor │ 1 month later
+  What:  Construction workers laid off
+  Why:   Fewer housing starts means less demand for construction labor
+  Confidence: Medium  ← 4th order effect
+
+Key Insight:
+  The job losses in construction appear 30 days after the rate hike — long after
+  most analysts have stopped watching. Most economists attribute this to "the economy
+  slowing down." This tool traces it back to a single FOMC meeting, with the exact
+  delay at each step.
+```
 
 ---
 
@@ -97,18 +119,41 @@ Fed raises rates 75bps
 
 **Question typed:** `Hamas attacks Israel — October 7, 2023`
 
-**How to read this:** The chain crosses multiple domains — military, energy, shipping, inflation. Each hop is a different industry being affected.
+**How to read this:** The chain crosses multiple domains — military, energy, logistics, inflation. Each hop is a different industry being affected.
 
 ```
-Hamas attacks Israel
-  └─► Oil prices spike +8.3%                [6 hours later]    confidence: 0.82
-  └─► Red Sea shipping routes disrupted     [3 days later]     confidence: 0.71
-        └─► Suez Canal traffic drops -40%   [4 days later]     confidence: 0.85  ← 3rd order
-              └─► EU energy prices rise +28%  [1 week later]   confidence: 0.63  ← 3rd order
-                    └─► EU inflation restarts  [30 days later]  confidence: 0.58  ← 4th order
-```
+Step 1 │ Energy │ Immediate
+  What:  Oil prices rise
+  Why:   Energy traders price in supply risk from the conflict zone
+  Confidence: High
 
-**Key insight:** The ECB declared victory on inflation in September 2023. One month later, a conflict in Gaza restarted the energy price mechanism — via a chain that ran through Houthi attacks on shipping, Suez Canal disruption, and LNG prices. This showed up in European inflation data in early 2024. The chain was traceable from day one.
+Step 2 │ Geopolitics │ Immediate
+  What:  Conflict intensity increases
+  Why:   Military escalation increases direct risk to people and assets
+  Confidence: High
+
+Step 3 │ Logistics │ 3 days later
+  What:  Shipping routes disrupted
+  Why:   Conflict forces vessels to reroute, raising costs and transit times
+  Confidence: Medium  ← 3rd order effect
+
+Step 4 │ Finance │ 1 week later
+  What:  Insurance premiums spike
+  Why:   Insurers reprice risk exposure in affected shipping regions
+  Confidence: Medium  ← 3rd order effect
+
+Step 5 │ Economy │ 1 month later
+  What:  EU energy inflation re-accelerates
+  Why:   LNG spot prices rise as Red Sea disruption cuts supply routes to Europe
+  Confidence: Medium  ← 4th order effect
+
+Key Insight:
+  The ECB declared victory on inflation in September 2023. One month later, a conflict
+  in Gaza restarted the energy price mechanism via a chain that ran through Houthi attacks
+  on shipping, Suez Canal disruption, and LNG prices. This showed up in European inflation
+  data in early 2024. The chain was traceable from day one — but only if you follow it
+  across 5 domains.
+```
 
 ---
 

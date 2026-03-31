@@ -31,9 +31,15 @@ const STAGE_ORDER = ["parsing", "fetching", "extracting", "causal_modeling", "si
 interface GraphData { nodes: unknown[]; edges: unknown[] }
 interface Insight { order: number; hop: number; text: string; why: string; confidence: number; sources: string[] }
 
-/** Parse LLM insight strings into structured InsightCard props */
+/** Parse LLM insight strings into structured InsightCard props.
+ * Supports both new STEP:/INSIGHT: format and legacy plain strings. */
 function parseInsights(raw: string[]): Insight[] {
   return raw.map((text, i) => {
+    // New structured format — pass through as-is, InsightCard handles parsing
+    if (text.startsWith("STEP:") || text.startsWith("INSIGHT:")) {
+      return { order: i + 1, hop: i + 1, text, why: "", confidence: 0.8, sources: [] };
+    }
+    // Legacy plain string format
     const orderMatch = text.match(/(\d+)(st|nd|rd|th)\s+order/i);
     const order = orderMatch ? parseInt(orderMatch[1]) : (i === 0 ? 2 : i === 1 ? 3 : 4);
     return {
@@ -280,7 +286,9 @@ export default function Home() {
                   ) : (
                     <motion.div key="insights" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                       <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                        <span style={{ fontSize: "10px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "700" }}>Key Insights</span>
+                        <span style={{ fontSize: "10px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "700" }}>
+                          {insights.some(i => i.text.startsWith("STEP:")) ? "Causal Chain" : "Key Insights"}
+                        </span>
                       </div>
                       <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
                         {insights.map((ins, i) => <InsightCard key={i} insight={ins} index={i} prefersReduced={!!prefersReduced} />)}

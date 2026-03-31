@@ -1,173 +1,171 @@
+﻿"""InsightGenerator — produces structured, human-readable causal chain output.
 
-"""InsightGenerator — turns a causal chain into plain-English non-obvious insights.
-
-Uses Claude to generate 3-5 insights that:
-  - Reference specific causal hops (not vague claims)
-  - Flag 3rd/4th order effects explicitly
-  - Are specific about timing
-  - Name specific actors
-  - Flag uncertainty honestly
-
-Falls back to rule-based generation when no API key is available.
+Each insight is a structured step with: what happened, why, domain, timing, confidence.
+The final output also includes a key insight explaining what is non-obvious.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from loguru import logger
 
-if TYPE_CHECKING:
-    pass
+_SYSTEM_PROMPT = """You are a causal reasoning expert. Given a causal chain from a simulation,
+produce a structured analysis that a non-expert can understand immediately.
 
-_SYSTEM_PROMPT = """You are a geopolitical and systems analyst specializing in
-second and third-order effects. You have read Nassim Taleb, George Soros, and
-Judea Pearl. You think in causal chains, not headlines.
+For each step in the chain, explain:
+1. What happened (plain English, not variable names)
+2. Why it happened (one sentence causal mechanism)
+3. Which domain it belongs to (Economy / Finance / Geopolitics / Energy / Health / Technology / etc.)
+4. How long after the original event
+5. Confidence level (High / Medium / Low)
 
-Your job: given a causal chain from a simulation, generate 3-5 insights that
-a smart analyst would MISS if they only read the news.
+Then add a Key Insight: 2-3 sentences explaining what is non-obvious and why it matters.
 
-Rules (non-negotiable):
-1. Every insight MUST start with "What most people miss: "
-2. Reference a SPECIFIC hop in the chain by name (e.g. "the oil_price → inflation hop")
-3. Flag 3rd/4th order effects with "[3rd order]" or "[4th order]" at the start
-4. Be specific about timing: "within 6-8 weeks" not "soon"
-5. Name specific actors: "OPEC" not "oil producers", "ECB" not "central banks"
-6. Flag uncertainty: "this assumes continued escalation" or "if sanctions hold"
-7. PRIORITIZE the surprising over the obvious — skip the headlines
+Return a JSON object with this exact structure:
+{
+  "steps": [
+    {
+      "step": 1,
+      "what": "Oil prices rise",
+      "why": "Energy traders price in supply risk from the conflict zone",
+      "domain": "Energy",
+      "timing": "Immediate (hours)",
+      "confidence": "High"
+    }
+  ],
+  "key_insight": "The non-obvious consequence here is... because..."
+}
 
-Respond with ONLY a JSON array of strings. No prose, no markdown, no explanation."""
+Rules:
+- Use plain English. No jargon.
+- "what" must be a complete sentence describing the effect
+- "why" must explain the causal mechanism in one sentence
+- "domain" must be one of: Economy, Finance, Geopolitics, Energy, Health, Technology, Supply Chain, Policy, Labor, Climate, Infrastructure
+- "timing" must be specific: "Immediate (hours)", "1-2 days", "1 week", "2-4 weeks", "1-2 months"
+- "confidence" must be: "High", "Medium", or "Low"
+- key_insight must explain what most people would miss and why it matters
+- Return ONLY valid JSON. No prose, no markdown."""
 
 
 class InsightGenerator:
-    """Generate non-obvious causal insights using Claude or rule-based fallback."""
 
-    async def generate(
-        self,
-        chain,  # SimulationCausalChain
-        event,  # UniversalEvent
-    ) -> list[str]:
-        """Generate insights from a SimulationCausalChain object."""
+    async def generate(self, chain, event) -> list[str]:
         chain_dict = chain.model_dump() if hasattr(chain, "model_dump") else chain
         return await self.generate_from_dict(chain_dict, event)
 
-    async def generate_from_dict(
-        self,
-        chain_dict: dict,
-        event,  # UniversalEvent
-    ) -> list[str]:
-        """Generate insights from a chain dict (works with both Pydantic and plain dicts)."""
+    async def generate_from_dict(self, chain_dict: dict, event) -> list[str]:
         try:
             from butterfly.llm.providers import llm_complete, extract_json
 
             prompt = self._build_prompt(chain_dict, event)
-            raw = await llm_complete(
-                system=_SYSTEM_PROMPT,
-                user=prompt,
-                max_tokens=800,
-            )
+            raw = await llm_complete(system=_SYSTEM_PROMPT, user=prompt, max_tokens=1200)
+            data = extract_json(raw)
 
-            insights = extract_json(raw)
+            if not isinstance(data, dict):
+                raise ValueError("Expected JSON object")
 
-            if not isinstance(insights, list):
-                raise ValueError("Expected JSON array")
+            steps = data.get("steps", [])
+            key_insight = data.get("key_insight", "")
 
-            validated = []
-            for ins in insights[:5]:
-                if isinstance(ins, str) and len(ins) > 20:
-                    if not ins.startswith("What most people miss:"):
-                        ins = "What most people miss: " + ins
-                    validated.append(ins)
+            if not steps:
+                raise ValueError("No steps in response")
 
-            if len(validated) < 3:
-                raise ValueError(f"Only {len(validated)} valid insights generated")
+            # Format as structured strings the frontend can parse
+            result = []
+            for s in steps[:6]:
+                step_num = s.get("step", "?")
+                what = s.get("what", "")
+                why = s.get("why", "")
+                domain = s.get("domain", "")
+                timing = s.get("timing", "")
+                confidence = s.get("confidence", "")
+                if what:
+                    result.append(f"STEP:{step_num}|WHAT:{what}|WHY:{why}|DOMAIN:{domain}|TIMING:{timing}|CONFIDENCE:{confidence}")
 
-            logger.info(f"InsightGenerator: {len(validated)} insights for '{getattr(event, 'title', '?')}'")
-            return validated
+            if key_insight:
+                result.append(f"INSIGHT:{key_insight}")
+
+            logger.info(f"InsightGenerator: {len(steps)} steps + key insight for '{getattr(event, 'title', '?')}'")
+            return result
 
         except Exception as e:
-            logger.warning(f"InsightGenerator LLM failed ({e}), using rule-based fallback")
-            return self._rule_based(chain_dict, event)
+            logger.warning(f"InsightGenerator LLM failed ({e}), using structured fallback")
+            return self._structured_fallback(chain_dict, event)
 
     @staticmethod
     def _build_prompt(chain_dict: dict, event) -> str:
-        """Build the user prompt from chain and event data."""
-        # Extract hop descriptions
         hops = chain_dict.get("chains", [])
         edges = chain_dict.get("edges", [])
+        title = getattr(event, "title", "Unknown Event")
+        domains = getattr(event, "domain", []) or chain_dict.get("domain_coverage", [])
+        actors = getattr(event, "primary_actors", [])
+        severity = getattr(event, "severity", "moderate")
 
         if hops:
-            hop_lines = "\n".join(
-                f"  Hop {i+1}: {h.get('from_agent', '?')} → {h.get('to_variable', '?')} "
-                f"(magnitude={h.get('magnitude', '?'):.2f}, "
-                f"step={h.get('step_triggered', '?')}, "
-                f"confidence={h.get('confidence', '?'):.2f})"
-                for i, h in enumerate(hops[:8])
-            )
+            # Use enriched hop data if available
+            hop_lines = []
+            for i, h in enumerate(hops[:8]):
+                label = h.get("label", h.get("to_variable", "?"))
+                why = h.get("why", h.get("mechanism", ""))
+                domain = h.get("domain", "")
+                timing = h.get("time_label", f"step {h.get('step_triggered', '?')}")
+                conf = h.get("confidence_label", f"{h.get('confidence', 0):.0%}")
+                hop_lines.append(f"  Step {i+1}: {label} | Why: {why} | Domain: {domain} | Timing: {timing} | Confidence: {conf}")
+            chain_text = "\n".join(hop_lines)
         elif edges:
-            hop_lines = "\n".join(
-                f"  Edge {i+1}: {e.get('source', '?')} → {e.get('target', '?')} "
-                f"(confidence={e.get('confidence', '?')}, latency={e.get('latency_hours', '?')}h)"
+            chain_text = "\n".join(
+                f"  Step {i+1}: {e.get('source','?')} -> {e.get('target','?')} (confidence: {e.get('confidence','?')}, latency: {e.get('latency_hours','?')}h)"
                 for i, e in enumerate(edges[:8])
             )
         else:
-            hop_lines = "  No hops extracted"
+            chain_text = "  No chain data available"
 
-        domains = getattr(event, "domain", []) or chain_dict.get("domain_coverage", [])
-        actors = getattr(event, "primary_actors", [])
-        scope = getattr(event, "geographic_scope", [])
-        severity = getattr(event, "severity", "moderate")
-        total_hops = chain_dict.get("total_hops", len(edges))
-        feedback_loops = chain_dict.get("feedback_loops", [])
-
-        return f"""Event: {getattr(event, 'title', 'Unknown Event')}
+        return f"""Event: {title}
 Severity: {severity}
 Domains: {', '.join(domains)}
 Primary actors: {', '.join(actors[:5]) if actors else 'Unknown'}
-Geographic scope: {', '.join(scope[:5]) if scope else 'Global'}
 
-Causal chain ({total_hops} hops):
-{hop_lines}
+Causal chain extracted from simulation:
+{chain_text}
 
-Feedback loops detected: {len(feedback_loops)} {'(cycles: ' + str(feedback_loops[:2]) + ')' if feedback_loops else '(none)'}
-
-Domain coverage: {', '.join(chain_dict.get('domain_coverage', domains))}
-
-Generate 4 non-obvious insights. Remember: specific hops, specific actors, specific timing, flag order."""
+Generate a structured step-by-step analysis with a key insight."""
 
     @staticmethod
-    def _rule_based(chain_dict: dict, event) -> list[str]:
-        """Rule-based fallback when LLM is unavailable."""
+    def _structured_fallback(chain_dict: dict, event) -> list[str]:
+        """Rule-based fallback producing the same structured format."""
         hops = chain_dict.get("chains", [])
         edges = chain_dict.get("edges", [])
         domains = getattr(event, "domain", []) or ["economics"]
         seeds = getattr(event, "causal_seeds", [])
-        systems = getattr(event, "affected_systems", [])
-        scope = getattr(event, "geographic_scope", ["Global"])
         title = getattr(event, "title", "this event")
 
-        # Pick the most interesting hop (highest magnitude or latest step)
-        interesting_hop = ""
+        result = []
+
         if hops:
-            top = max(hops, key=lambda h: h.get("magnitude", 0))
-            interesting_hop = f"the {top.get('from_agent', '?')} → {top.get('to_variable', '?')} hop"
-        elif edges and len(edges) >= 3:
-            e = edges[2]
-            interesting_hop = f"the {e.get('source', '?')} → {e.get('target', '?')} edge"
+            for i, h in enumerate(hops[:5]):
+                label = h.get("label", h.get("to_variable", "?").replace("_", " ").title())
+                why = h.get("why", h.get("mechanism", f"Caused by {h.get('from_agent', 'upstream event')}"))
+                domain = h.get("domain", "Economy")
+                timing = h.get("time_label", "Unknown timing")
+                confidence = h.get("confidence_label", "Medium")
+                result.append(f"STEP:{i+1}|WHAT:{label}|WHY:{why}|DOMAIN:{domain}|TIMING:{timing}|CONFIDENCE:{confidence}")
+        elif seeds:
+            domain_labels = ["Economy", "Supply Chain", "Finance", "Policy", "Labor"]
+            timings = ["Immediate (hours)", "1-2 days", "1-2 weeks", "2-4 weeks", "1-2 months"]
+            for i, seed in enumerate(seeds[:5]):
+                d = domain_labels[i % len(domain_labels)]
+                t = timings[i % len(timings)]
+                result.append(f"STEP:{i+1}|WHAT:{seed}|WHY:Downstream effect of {title}|DOMAIN:{d}|TIMING:{t}|CONFIDENCE:Medium")
         else:
-            interesting_hop = f"the {seeds[0] if seeds else 'first-order'} effect"
+            result.append(f"STEP:1|WHAT:Initial shock to {domains[0] if domains else 'affected'} markets|WHY:Direct impact of the event|DOMAIN:Economy|TIMING:Immediate (hours)|CONFIDENCE:High")
+            result.append(f"STEP:2|WHAT:Supply chain disruption follows|WHY:Upstream shock propagates through supply networks|DOMAIN:Supply Chain|TIMING:1-2 days|CONFIDENCE:Medium")
+            result.append(f"STEP:3|WHAT:Policy response from governments|WHY:Authorities react to stabilize affected systems|DOMAIN:Policy|TIMING:1-2 weeks|CONFIDENCE:Medium")
 
-        third_order = seeds[2] if len(seeds) > 2 else (systems[0] if systems else "downstream systems")
-        fourth_order = domains[-1] if len(domains) > 1 else "financial markets"
-        region2 = scope[1] if len(scope) > 1 else "neighboring regions"
+        # Key insight
+        if hops and len(hops) >= 3:
+            last = hops[-1]
+            last_label = last.get("label", last.get("to_variable", "downstream effects"))
+            result.append(f"INSIGHT:The non-obvious consequence is {last_label.lower()} — this appears {last.get('time_label', 'weeks later')} after the original event, long after most analysts have stopped watching. The chain crosses {len(set(h.get('domain', '') for h in hops))} domains, making it invisible to single-domain analysis.")
+        else:
+            result.append(f"INSIGHT:The key non-obvious effect is that {title} creates cross-domain ripples that most analysts miss because they focus only on the immediate, first-order impact. The downstream effects in {domains[-1] if len(domains) > 1 else 'adjacent sectors'} typically appear 2-4 weeks later.")
 
-        return [
-            f"What most people miss: {interesting_hop} will manifest within 24-48 hours — "
-            f"before most analysts have updated their models for {title}.",
-            f"What most people miss: [3rd order] {third_order} is structurally exposed to this chain. "
-            f"This is the non-obvious vulnerability that won't appear in headlines for 2-3 weeks.",
-            f"What most people miss: Geographic spillover to {region2} is underpriced. "
-            f"Markets are pricing only the direct impact, not the second-order contagion.",
-            f"What most people miss: [4th order] The {fourth_order} domain effects will peak "
-            f"6-8 weeks after the initial event — this is the butterfly effect nobody is modeling yet.",
-        ]
+        return result
