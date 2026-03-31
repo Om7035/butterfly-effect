@@ -30,7 +30,7 @@ pip install fastapi uvicorn pydantic-settings loguru httpx google-genai mistrala
 Add a free LLM key to `backend/.env` — get one at [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) in 30 seconds:
 
 ```env
-GEMINI_API_KEY=your-key-here
+LLM_API_KEY=your-key-here
 ```
 
 ```bash
@@ -119,7 +119,7 @@ The response is a **Server-Sent Events stream** — watch the chain build in rea
 butterfly-effect/
 ├── backend/butterfly/
 │   ├── api/           # FastAPI routes — analyze (SSE), demo, events, simulation
-│   ├── llm/           # Multi-provider LLM router (Gemini → Mistral → Anthropic)
+│   ├── llm/           # Multi-provider LLM router (auto-selects best available)
 │   ├── ingestion/     # 8 parallel evidence fetchers
 │   ├── causal/        # DAG builder · identification · synthetic control · extractor
 │   ├── simulation/    # Mesa ABM — domain-agnostic agents + universal model
@@ -186,13 +186,13 @@ Pure Python/scipy implementation of Abadie & Gardeazabal (2003). No R required.
 
 ```mermaid
 flowchart TD
-    A[Pre-treatment data\ntreated + controls] --> B[SLSQP optimization\nmin ||treated - controls @ W||²\nsubject to W≥0, sum=1]
-    B --> C[Synthetic counterfactual\ncontrols @ W]
-    C --> D[ATE = mean\nactual_post − synthetic_post]
-    D --> E[In-space placebo tests\np-value = fraction of placebos\nwith ATE ≥ treated ATE]
-    E --> F{Pre-treatment R² ≥ 0.80?}
-    F -->|Yes| G[✅ is_trustworthy = True]
-    F -->|No| H[⚠️ interpret with caution]
+    A[Pre-treatment data\ntreated + controls] --> B[SLSQP optimization\nminimize residuals\nW ge 0 and sum to 1]
+    B --> C[Synthetic counterfactual\ncontrols times W]
+    C --> D[ATE = mean of\nactual minus synthetic\npost-treatment]
+    D --> E[In-space placebo tests\np-value = fraction of placebos\nwith ATE >= treated ATE]
+    E --> F{Pre-treatment R2 >= 0.80?}
+    F -->|Yes| G[is_trustworthy = True]
+    F -->|No| H[interpret with caution]
 
     style G fill:#064e3b,color:#34d399,stroke:#34d399
     style H fill:#451a03,color:#fbbf24,stroke:#fbbf24
@@ -238,12 +238,12 @@ The LLM is called **exactly twice** per analysis: once to parse the event, once 
 
 ```mermaid
 flowchart LR
-    A[LLM Request] --> B{Gemini 2.0 Flash\navailable?}
-    B -->|Yes| C[✅ Use Gemini]
-    B -->|429 Rate limit| D{Gemini 2.0\nFlash Lite?}
-    D -->|Yes| E[✅ Use Gemini Lite]
-    D -->|429| F{Mistral Small?}
-    F -->|Yes| G[✅ Use Mistral]
+    A[LLM Request] --> B{Primary LLM\navailable?}
+    B -->|Yes| C[Use Primary LLM]
+    B -->|Rate limited| D{Secondary LLM\navailable?}
+    D -->|Yes| E[Use Secondary LLM]
+    D -->|Rate limited| F{Tertiary LLM?}
+    F -->|Yes| G[Use Tertiary LLM]
     F -->|No| H[Rule-based\nfallback]
 
     style C fill:#064e3b,color:#34d399,stroke:#34d399
