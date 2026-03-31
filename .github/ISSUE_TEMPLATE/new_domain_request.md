@@ -1,6 +1,6 @@
----
+﻿---
 name: New domain request
-about: Request support for a new event domain (cryptocurrency, sports, real estate, etc.)
+about: Request support for a new event domain (cryptocurrency, real estate, sports, etc.)
 title: "feat: add [DOMAIN] domain support"
 labels: new-domain
 assignees: ''
@@ -10,40 +10,46 @@ assignees: ''
 <!-- e.g., "cryptocurrency", "real estate", "sports", "energy transition" -->
 
 ## Why this domain matters
-<!-- What kinds of questions would this unlock? Give 2-3 examples. -->
 
-Example questions:
+Example questions this would unlock:
 1. 
 2. 
 3. 
 
-## Key agents for this domain
-<!-- Who are the main actors that react to events in this domain? -->
-<!-- e.g., for cryptocurrency: exchanges, miners, institutional investors, regulators -->
+## Key agents
 
-- Agent 1: [name] — [what they optimize for]
-- Agent 2: [name] — [what they optimize for]
-- Agent 3: [name] — [what they optimize for]
+Who are the main actors that react to events in this domain?
 
-## Key variables
-<!-- What environment variables would agents read and write? -->
-<!-- e.g., btc_price, hash_rate, exchange_volume, regulatory_pressure -->
+| Agent name | Type | What they optimize for |
+|-----------|------|----------------------|
+| | | |
+| | | |
 
-- `variable_name` — description, typical range
+## Key environment variables
+
+What variables would agents read and write?
+
+| Variable name | Description | Typical range |
+|--------------|-------------|---------------|
+| | | |
 
 ## Free data sources
-<!-- Are there free APIs that provide data for this domain? -->
 
-- Source name: URL — what it provides
+| Source | URL | What it provides |
+|--------|-----|-----------------|
+| | | |
 
 ## Worked example
-<!-- Show one question → expected chain (even if approximate) -->
 
 **Question:** 
 
 **Expected chain:**
-- Hop 1 [t+?h]: cause → effect (confidence estimate)
-- Hop 2 [t+?h]: ...
+```
+[1st]  t+?h   cause â”€â”€â–¶ effect   (confidence estimate)
+[2nd]  t+?h   ...
+```
+
+**Non-obvious insight:**
 
 ## Are you willing to implement this?
 - [ ] Yes, I'll open a PR
