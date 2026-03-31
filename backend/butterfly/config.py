@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     news_api_key: str | None = None
     anthropic_api_key: str | None = None
     acled_api_key: str | None = None
+    acled_email: str | None = None
+    acled_password: str | None = None
     gemini_api_key: str | None = None
     mistral_api_key: str | None = None
 

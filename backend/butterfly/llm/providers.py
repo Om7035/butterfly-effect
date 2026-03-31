@@ -71,7 +71,7 @@ async def _gemini(api_key: str, system: str, user: str, max_tokens: int) -> str:
         loop = asyncio.get_event_loop()
 
         # Try models in order — each has its own quota bucket
-        for model_name in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"):
+        for model_name in ("gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-flash"):
             try:
                 def _call(m=model_name):
                     return client.models.generate_content(
