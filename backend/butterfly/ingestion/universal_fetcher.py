@@ -269,18 +269,27 @@ async def fetch_acled(queries: list[str]) -> list[RawEvidence]:
 # ── ReliefWeb (free, no key) ──────────────────────────────────────────────────
 
 async def fetch_reliefweb(queries: list[str]) -> list[RawEvidence]:
-    """Fetch ReliefWeb humanitarian reports."""
+    """Fetch ReliefWeb humanitarian reports.
+    Note: API may require registration at reliefweb.int for full access.
+    Falls back gracefully if unavailable.
+    """
     results: list[RawEvidence] = []
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         for q in queries[:2]:
             try:
-                r = await client.post(
+                r = await client.get(
                     "https://api.reliefweb.int/v1/reports",
-                    json={"query": {"value": q},
-                          "fields": {"include": ["title", "body-html", "url", "date"]},
-                          "limit": 5},
-                    headers={"User-Agent": "butterfly-effect/0.4"},
+                    params={
+                        "appname": "butterfly-effect",
+                        "query[value]": q,
+                        "fields[include][]": ["title", "body-html", "url", "date"],
+                        "limit": 5,
+                        "sort[]": "date:desc",
+                    },
                 )
+                if r.status_code == 403:
+                    logger.debug("ReliefWeb: 403 — API access restricted, skipping")
+                    break
                 if r.status_code == 200:
                     import re
                     for item in r.json().get("data", [])[:5]:
@@ -453,13 +462,19 @@ async def fetch_rss(queries: list[str], domains: list[str] | None = None) -> lis
     feed_urls = list(set(feed_urls))[:6]
 
     keywords_lower = [q.lower() for q in queries]
+    # Also extract individual words from queries for broader matching
+    all_words = set()
+    for q in queries:
+        all_words.update(w.lower() for w in q.split() if len(w) > 3)
+    
     results: list[RawEvidence] = []
+    seen_urls: set[str] = set()
 
     loop = asyncio.get_event_loop()
 
     def _parse(url: str) -> list:
         try:
-            return feedparser.parse(url).entries[:8]
+            return feedparser.parse(url).entries[:10]
         except Exception:
             return []
 
@@ -472,13 +487,19 @@ async def fetch_rss(queries: list[str], domains: list[str] | None = None) -> lis
         title = entry.get("title", "")
         summary = entry.get("summary", "")
         combined = (title + " " + summary).lower()
-        if not any(kw in combined for kw in keywords_lower):
+        url = entry.get("link", "")
+        if url in seen_urls:
             continue
+        # Match if any full query OR any significant word appears
+        if not (any(kw in combined for kw in keywords_lower) or
+                any(w in combined for w in all_words)):
+            continue
+        seen_urls.add(url)
         results.append(RawEvidence(
             source="rss",
             title=title[:200],
             content=summary[:500],
-            url=entry.get("link", ""),
+            url=url,
             domain_tags=domains or ["news"],
         ))
 
