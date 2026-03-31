@@ -25,9 +25,10 @@ interface Props {
   liveStats: { nodes: number; agents: number; steps: number };
   query: string;
   prefersReduced: boolean;
+  currentMessage?: string;
 }
 
-export default function AnalysisStream({ stage, stages, liveStats, query, prefersReduced }: Props) {
+export default function AnalysisStream({ stage, stages, liveStats, query, prefersReduced, currentMessage }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -53,6 +54,9 @@ export default function AnalysisStream({ stage, stages, liveStats, query, prefer
       <div style={{ textAlign: "center", maxWidth: "500px" }}>
         <p style={{ fontSize: "11px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Tracing causal chain for</p>
         <p style={{ fontSize: "16px", color: "#e2e8f0", fontWeight: "600", lineHeight: 1.4 }}>{query}</p>
+        {currentMessage && (
+          <p style={{ fontSize: "11px", color: "#475569", marginTop: "6px", fontFamily: "monospace" }}>{currentMessage}</p>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", maxWidth: "400px" }}>

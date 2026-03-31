@@ -26,10 +26,88 @@ const EXAMPLES = [
   { text: "Pandemic declared — novel pathogen", icon: <Globe size={12} />,         color: "#10b981" },
 ];
 
-const STAGES = ["parsing", "fetching", "extracting", "simulating", "done"] as const;
+const STAGE_ORDER = ["parsing", "fetching", "extracting", "causal_modeling", "simulating", "extracting_chain", "done"] as const;
 
 interface GraphData { nodes: unknown[]; edges: unknown[] }
 interface Insight { order: number; hop: number; text: string; why: string; confidence: number; sources: string[] }
+
+/** Parse LLM insight strings into structured InsightCard props */
+function parseInsights(raw: string[]): Insight[] {
+  return raw.map((text, i) => {
+    const orderMatch = text.match(/(\d+)(st|nd|rd|th)\s+order/i);
+    const order = orderMatch ? parseInt(orderMatch[1]) : (i === 0 ? 2 : i === 1 ? 3 : 4);
+    return {
+      order,
+      hop: order,
+      text: text.replace(/^What most people miss:\s*/i, ""),
+      why: "",
+      confidence: Math.max(0.5, 0.9 - i * 0.12),
+      sources: [],
+    };
+  });
+}
+
+/** Convert backend causal_chain dict to React Flow nodes/edges */
+function chainToGraphData(chain: Record<string, unknown>): GraphData | null {
+  // Chain from simulation extractor: has "chains" (hops) array
+  const hops = chain.chains as Array<Record<string, unknown>> | undefined;
+  // Chain from DAG: has "nodes" and "edges" arrays
+  const rawNodes = chain.nodes as Array<Record<string, unknown>> | undefined;
+  const rawEdges = chain.edges as Array<Record<string, unknown>> | undefined;
+
+  if (rawNodes && rawNodes.length > 0) {
+    // DAG-style chain
+    const rfData = transformToReactFlowData({
+      nodes: rawNodes.map((n) => ({
+        id: (n.id as string) || String(Math.random()),
+        type: ((n.type as string) || "entity").toLowerCase() as "event" | "entity" | "metric" | "policy",
+        title: (n.label as string) || (n.id as string),
+        name: (n.label as string) || (n.id as string),
+        confidence: n.confidence as number | undefined,
+        value: n.value as number | undefined,
+        delta: n.delta as number | undefined,
+      })),
+      edges: (rawEdges || []).map((e, i) => ({
+        id: (e.id as string) || `e${i}`,
+        source: e.source as string,
+        target: e.target as string,
+        type: (e.type as string) === "CAUSED_BY" || (e.type as string) === "causal" ? "causal" : "influence",
+        strength: e.strength as number | undefined,
+        confidence: (e.confidence as number) || 0.7,
+        latency: (e.latency_hours as number) || (e.latency as number) || 0,
+      })),
+    });
+    const laid = applyHierarchicalLayout(
+      rfData.nodes as Parameters<typeof applyHierarchicalLayout>[0],
+      rfData.edges as Parameters<typeof applyHierarchicalLayout>[1]
+    );
+    return { nodes: laid, edges: rfData.edges };
+  }
+
+  if (hops && hops.length > 0) {
+    // Simulation extractor style — build nodes/edges from hops
+    const nodes: Array<Record<string, unknown>> = [];
+    const edges: Array<Record<string, unknown>> = [];
+    const seen = new Set<string>();
+
+    hops.forEach((hop, i) => {
+      const fromId = (hop.from_agent as string) || `agent_${i}`;
+      const toId = (hop.to_variable as string) || `var_${i}`;
+      if (!seen.has(fromId)) { seen.add(fromId); nodes.push({ id: fromId, type: "entity", title: fromId, name: fromId }); }
+      if (!seen.has(toId)) { seen.add(toId); nodes.push({ id: toId, type: "metric", title: toId.replace(/_/g, " "), name: toId.replace(/_/g, " "), confidence: hop.confidence as number }); }
+      edges.push({ id: `e${i}`, source: fromId, target: toId, type: "causal", confidence: hop.confidence as number || 0.7, latency: hop.step_triggered as number || 0 });
+    });
+
+    const rfData = transformToReactFlowData({ nodes: nodes as Parameters<typeof transformToReactFlowData>[0]["nodes"], edges: edges as Parameters<typeof transformToReactFlowData>[0]["edges"] });
+    const laid = applyHierarchicalLayout(
+      rfData.nodes as Parameters<typeof applyHierarchicalLayout>[0],
+      rfData.edges as Parameters<typeof applyHierarchicalLayout>[1]
+    );
+    return { nodes: laid, edges: rfData.edges };
+  }
+
+  return null;
+}
 
 export default function Home() {
   const prefersReduced = useReducedMotion();
@@ -37,6 +115,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<"idle" | "streaming" | "done">("idle");
   const [stage, setStage] = useState(0);
+  const [currentMessage, setCurrentMessage] = useState("");
   const [liveStats, setLiveStats] = useState({ nodes: 0, agents: 0, steps: 0 });
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -49,68 +128,77 @@ export default function Home() {
     setQuery(q);
     setPhase("streaming");
     setStage(0);
+    setCurrentMessage("Connecting to analysis engine...");
     setLiveStats({ nodes: 0, agents: 0, steps: 0 });
     setGraphData(null);
     setInsights([]);
     setError(null);
     setSelectedNodeId(null);
 
-    // Simulate stage progression for demo
-    const stageTimings = [400, 800, 600, 900];
-    for (let i = 0; i < stageTimings.length; i++) {
-      await new Promise((r) => setTimeout(r, stageTimings[i]));
-      setStage(i + 1);
-      setLiveStats({
-        nodes: Math.floor(8 + i * 3),
-        agents: Math.floor(20 + i * 21),
-        steps: Math.floor(i * 42),
-      });
-    }
-
     try {
-      const result = await api.demo.causalChain("demo_fed_jun2022");
-      const chain = result as unknown as { nodes: unknown[]; edges: unknown[] };
-      if (chain?.nodes) {
-        const rfData = transformToReactFlowData({
-          nodes: (chain.nodes as Array<Record<string, unknown>>).map((n) => ({
-            id: n.id as string,
-            type: ((n.type as string) || "entity").toLowerCase() as "event" | "entity" | "metric" | "policy",
-            title: n.label as string,
-            name: n.label as string,
-            confidence: n.confidence as number | undefined,
-            value: n.value as number | undefined,
-            delta: n.delta as number | undefined,
-          })),
-          edges: (chain.edges as Array<Record<string, unknown>>).map((e) => ({
-            id: e.id as string,
-            source: e.source as string,
-            target: e.target as string,
-            type: (e.type as string) === "CAUSED_BY" ? "causal" : "influence",
-            strength: e.strength as number | undefined,
-            confidence: e.confidence as number | undefined,
-            latency: e.latency_hours as number | undefined,
-          })),
-        });
-        const laid = applyHierarchicalLayout(
-          rfData.nodes as Parameters<typeof applyHierarchicalLayout>[0],
-          rfData.edges as Parameters<typeof applyHierarchicalLayout>[1]
-        );
-        setGraphData({ nodes: laid, edges: rfData.edges });
+      await api.analyze.stream(q, (event) => {
+        const ev = event as {
+          run_id?: string;
+          stage?: string;
+          percent?: number;
+          message?: string;
+          partial?: Record<string, unknown>;
+          result?: Record<string, unknown>;
+        };
+
+        // Update stage indicator
+        if (ev.stage) {
+          const idx = STAGE_ORDER.indexOf(ev.stage as typeof STAGE_ORDER[number]);
+          if (idx >= 0) setStage(idx);
+          setCurrentMessage(ev.message || ev.stage);
+        }
+
+        if (ev.run_id) setRunId(ev.run_id);
+
+        // Extract live stats from partial results
+        const partial = ev.partial || {};
+        if (partial.n_agents) setLiveStats(prev => ({ ...prev, agents: partial.n_agents as number }));
+        if (partial.diverging_vars) setLiveStats(prev => ({ ...prev, nodes: partial.diverging_vars as number }));
+
+        // On complete — extract full result
+        if (ev.stage === "complete" && ev.result) {
+          const result = ev.result;
+          const chain = result.causal_chain as Record<string, unknown> | undefined;
+          const rawInsights = result.insights as string[] | undefined;
+
+          // Build graph
+          if (chain) {
+            const gd = chainToGraphData(chain);
+            if (gd) {
+              setGraphData(gd);
+              setLiveStats({
+                nodes: gd.nodes.length,
+                agents: (chain.total_hops as number) || gd.edges.length,
+                steps: (chain.total_hops as number) || 0,
+              });
+            }
+          }
+
+          // Parse insights
+          if (rawInsights && rawInsights.length > 0) {
+            setInsights(parseInsights(rawInsights));
+          }
+
+          setPhase("done");
+        }
+      });
+
+      // If stream ended without a complete event (shouldn't happen but be safe)
+      if (phase === "streaming") {
+        setError("Analysis stream ended unexpectedly. Try again.");
+        setPhase("idle");
       }
-      setInsights([
-        { order: 3, hop: 3, text: "Fed rate hike → Treasury yield spike within 2h → mortgage rate +92bps → housing starts -247k (3rd order, 168h latency).", why: "The transmission mechanism from Fed Funds to mortgage rates is near-instantaneous via MBS repricing, but the housing starts impact has a 168h lag due to permit processing and builder confidence surveys.", confidence: 0.82, sources: ["FRED FEDFUNDS", "FRED MORTGAGE30US", "Census Bureau HOUST"] },
-        { order: 2, hop: 2, text: "Treasury yield inversion deepens — 2Y/10Y spread hits -40bps within 48h of FOMC decision.", why: "Short-end rates reprice immediately on Fed guidance; long-end anchored by recession expectations, creating the classic inversion signal.", confidence: 0.91, sources: ["FRED T10Y2Y", "Bloomberg Rates Desk"] },
-        { order: 4, hop: 4, text: "4th order: Construction sector job losses visible in JOLTS data 720h post-hike — most analysts miss this 30-day lag.", why: "Housing starts → builder layoffs → JOLTS construction openings → unemployment rate. The 4-hop chain has a 30-day total latency that makes attribution difficult without causal tracing.", confidence: 0.54, sources: ["BLS JOLTS", "FRED UNRATE", "NAHB Housing Index"] },
-      ]);
-      setRunId(`run_${Date.now()}`);
-      setStage(4);
-      setLiveStats({ nodes: 12, agents: 83, steps: 168 });
-      setPhase("done");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Analysis failed");
+      const msg = err instanceof Error ? err.message : "Analysis failed";
+      setError(msg);
       setPhase("idle");
     }
-  }, []);
+  }, [phase]);
 
   const handleLayoutChange = useCallback(
     (layout: "hierarchical" | "radial" | "grid" | "force") => {
@@ -119,15 +207,16 @@ export default function Home() {
         if (!prev) return prev;
         const nodes = prev.nodes as Parameters<typeof applyHierarchicalLayout>[0];
         const edges = prev.edges as Parameters<typeof applyHierarchicalLayout>[1];
-        let newNodes = [...nodes];
-        if (layout === "hierarchical") newNodes = applyHierarchicalLayout(nodes, edges);
-        return { ...prev, nodes: newNodes };
+        if (layout === "hierarchical") return { ...prev, nodes: applyHierarchicalLayout(nodes, edges) };
+        return prev;
       });
     },
     [graphData]
   );
 
-  const shareUrl = runId ? `${typeof window !== "undefined" ? window.location.origin : ""}/analysis/${runId}` : null;
+  const shareUrl = runId
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/analysis/${runId}`
+    : null;
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#0a0e1a", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "system-ui, -apple-system, sans-serif", color: "#e2e8f0" }}>
@@ -152,7 +241,7 @@ export default function Home() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         <AnimatePresence mode="wait">
           {phase === "idle" && <IdleView key="idle" query={query} setQuery={setQuery} onSubmit={runAnalysis} error={error} prefersReduced={!!prefersReduced} inputRef={inputRef} />}
-          {phase === "streaming" && <AnalysisStream key="stream" stage={stage} stages={STAGES} liveStats={liveStats} query={query} prefersReduced={!!prefersReduced} />}
+          {phase === "streaming" && <AnalysisStream key="stream" stage={stage} stages={STAGE_ORDER} liveStats={liveStats} query={query} prefersReduced={!!prefersReduced} currentMessage={currentMessage} />}
           {phase === "done" && graphData && (
             <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ flex: 1, display: "flex", overflow: "hidden" }}>
               {/* Graph area */}
