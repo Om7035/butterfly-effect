@@ -13,8 +13,6 @@ Falls back to rule-based generation when no API key is available.
 
 from __future__ import annotations
 
-import json
-import re
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -60,30 +58,20 @@ class InsightGenerator:
     ) -> list[str]:
         """Generate insights from a chain dict (works with both Pydantic and plain dicts)."""
         try:
-            from butterfly.config import settings
-            if not settings.anthropic_api_key:
-                raise RuntimeError("No ANTHROPIC_API_KEY")
-
-            import anthropic
-            client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+            from butterfly.llm.providers import llm_complete, extract_json
 
             prompt = self._build_prompt(chain_dict, event)
-            resp = await client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=800,
+            raw = await llm_complete(
                 system=_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": prompt}],
+                user=prompt,
+                max_tokens=800,
             )
 
-            raw = resp.content[0].text.strip()
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-            insights = json.loads(raw)
+            insights = extract_json(raw)
 
             if not isinstance(insights, list):
                 raise ValueError("Expected JSON array")
 
-            # Validate: each insight must start with "What most people miss:"
             validated = []
             for ins in insights[:5]:
                 if isinstance(ins, str) and len(ins) > 20:
@@ -94,7 +82,7 @@ class InsightGenerator:
             if len(validated) < 3:
                 raise ValueError(f"Only {len(validated)} valid insights generated")
 
-            logger.info(f"InsightGenerator: {len(validated)} insights for '{event.title}'")
+            logger.info(f"InsightGenerator: {len(validated)} insights for '{getattr(event, 'title', '?')}'")
             return validated
 
         except Exception as e:
