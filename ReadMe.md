@@ -189,6 +189,117 @@ butterfly-effect/
 
 ---
 
+## Algorithms
+
+This is the part most READMEs skip. Here's exactly what runs under the hood.
+
+### 1. Causal DAG construction
+
+**File:** `backend/butterfly/causal/dag.py`
+
+The system uses domain-specific DAG templates validated against academic literature, then merges them with event-specific edges from the knowledge graph.
+
+Five templates are built in:
+
+| Template | Domain | Source |
+|----------|--------|--------|
+| `FINANCIAL_TEMPLATE` | economics, finance | Bernanke (2005) monetary transmission mechanism |
+| `GEOPOLITICAL_TEMPLATE` | geopolitics, military | Collier & Hoeffler (2004) conflict economics |
+| `CLIMATE_TEMPLATE` | climate, environment | IPCC AR6 (2021) impact pathways |
+| `PANDEMIC_TEMPLATE` | health | Ferguson et al. (2020), Eichenbaum et al. (2021) |
+| `TECH_DISRUPTION_TEMPLATE` | technology | Brynjolfsson & McAfee (2014) second machine age |
+
+Each edge in a template carries: `latency_hours`, `confidence`, and a plain-English `mechanism` description.
+
+Cycle detection uses DFS. When a cycle is found, the weakest edge (lowest confidence) is removed. This runs iteratively until the graph is acyclic.
+
+### 2. Causal identification and estimation
+
+**File:** `backend/butterfly/causal/identification.py`
+
+The `UniversalCausalEstimator` auto-selects the appropriate statistical estimator based on the outcome variable type:
+
+| Outcome type | Estimator | Reference |
+|-------------|-----------|-----------|
+| Continuous (prices, rates) | DoWhy backdoor + OLS linear regression | Pearl (2009) Ch. 3 — backdoor criterion |
+| Count (casualties, events) | Poisson GLM — Incidence Rate Ratio | Cameron & Trivedi (2013) |
+| Binary (did X happen: 0/1) | Logistic regression — Average Marginal Effect | Hosmer & Lemeshow (2000) |
+| Ordinal (stability scores 1-10) | Ordered logit — proportional odds | McCullagh (1980) |
+| Rate (infection rate, unemployment %) | OLS on logit-transformed outcome | Papke & Wooldridge (1996) |
+
+The `OutcomeTypeDetector` classifies variables automatically using these rules (applied in order):
+1. Binary: only {0, 1} values
+2. Rate: values in [0,1] with non-integer values
+3. Count: non-negative integers with range > 20
+4. Ordinal: integers with ≤ 20 unique values
+5. Continuous: everything else
+
+When DoWhy is available, it runs three automated refutation tests:
+- **Random common cause** — adds a random variable as a confounder; effect should be stable
+- **Placebo treatment** — permutes the treatment; effect should disappear
+- **Data subset** — re-estimates on 80% of data; effect should be stable (±20%)
+
+### 3. Synthetic control method
+
+**File:** `backend/butterfly/causal/synthetic_control.py`
+
+For aggregate-level events (country policies, regional disasters), the system implements the Abadie & Gardeazabal (2003) synthetic control method from scratch in pure Python/scipy.
+
+The algorithm:
+1. **Find optimal weights** — minimize `||treated_pre - controls_pre @ W||²` subject to `W ≥ 0, sum(W) = 1` using SLSQP optimization
+2. **Construct counterfactual** — `synthetic = controls @ W` for the full time series
+3. **Estimate effect** — `ATE = mean(actual_post - synthetic_post)`
+4. **Validate with placebo tests** — treat each control unit as if it were treated; p-value = fraction of placebos with `|ATE| ≥ |treated_ATE|`
+
+A result is only marked `is_trustworthy=True` if pre-treatment fit R² ≥ 0.80 (Abadie 2021 recommendation).
+
+### 4. Agent-based simulation
+
+**File:** `backend/butterfly/simulation/universal_model.py`, `dynamic_agents.py`
+
+The simulation uses [Mesa](https://mesa.readthedocs.io/) (Python ABM framework). Each agent has:
+
+- **TriggerRules** — conditions that activate the agent: `variable operator threshold` (e.g., `conflict_intensity > 0.3`)
+- **ReactionFunctions** — one of four mathematical formulas:
+  - `linear` — constant delta per step: `δ = direction × magnitude`
+  - `exponential` — decays over time: `δ = direction × magnitude × exp(-t/10)`
+  - `step` — immediate jump, then flat: `δ = direction × magnitude` at `t=0` only
+  - `sigmoid` — S-curve: `δ = direction × magnitude × 1/(1 + exp(-0.5(t-5)))`
+- **lag_steps** — steps before reaction kicks in (1 step = 1 hour)
+- **dampening_factor** — how fast the response fades (0-1)
+
+Timeline A (event) and Timeline B (counterfactual) run concurrently in a thread pool. The diff `A(t) - B(t)` at each timestep is the true causal impact.
+
+### 5. Causal chain extraction
+
+**File:** `backend/butterfly/causal/log_extractor.py`
+
+After simulation, `CausalLogExtractor` processes the raw simulation log into an ordered causal chain:
+
+1. Groups log entries by `variable_changed`
+2. Computes `diff_series[var][step] = A(step, var) - B(step, var)` for all variables
+3. Finds `step_triggered` — first step where `|diff| > 2%` threshold (divergence threshold)
+4. Assigns each hop to the responsible agent (first agent to change that variable after divergence)
+5. Computes `magnitude = |max_delta| / (|baseline| + |max_delta|)` — normalized, bounded [0,1]
+6. Computes `persistence = fraction of steps where |delta| > 1%`
+7. Scores `confidence = 0.4 × log_count + 0.4 × magnitude + 0.2 × persistence`
+8. Detects feedback loops via DFS on the hop graph (using NetworkX `simple_cycles`)
+9. Infers domain coverage from variable names via `_VAR_DOMAIN_MAP`
+
+Hops are sorted by `step_triggered` — this is the causal order.
+
+### 6. LLM multi-provider routing
+
+**File:** `backend/butterfly/llm/providers.py`
+
+The LLM is used in two places only: event parsing (once per analysis) and insight generation (once per analysis). Everything in between is pure math.
+
+Provider priority: Gemini 2.0 Flash → Gemini 2.0 Flash Lite → Gemini 2.5 Flash → Mistral Small → Anthropic Claude
+
+Rate limit handling: if Gemini returns 429 (quota exceeded), the system automatically tries the next Gemini model before falling back to Mistral. Each model has its own quota bucket.
+
+---
+
 ## Contributing
 
 The fastest way to contribute is to add a new domain or improve an existing one.
