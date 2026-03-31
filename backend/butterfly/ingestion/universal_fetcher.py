@@ -98,9 +98,13 @@ async def fetch_duckduckgo(queries: list[str]) -> list[RawEvidence]:
     """Fetch live web search results via DuckDuckGo (no API key needed)."""
     results: list[RawEvidence] = []
     try:
-        from duckduckgo_search import DDGS
+        # Support both old and new package names
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            from duckduckgo_search import DDGS
     except ImportError:
-        logger.debug("duckduckgo-search not installed, skipping")
+        logger.debug("Neither ddgs nor duckduckgo-search installed, skipping")
         return results
 
     loop = asyncio.get_event_loop()

@@ -15,7 +15,7 @@ from butterfly.api.demo import router as demo_router
 from butterfly.api.events import router as events_router
 from butterfly.api.simulation import router as simulation_router
 from butterfly.config import settings
-from butterfly.db.neo4j import close_neo4j, init_constraints, init_neo4j
+from butterfly.db.neo4j import close_neo4j, init_constraints, init_neo4j, _neo4j_unavailable
 from butterfly.db.postgres import close_db, create_all_tables
 from butterfly.db.redis import close_redis, init_redis
 
@@ -69,18 +69,19 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.warning(f"Postgres unavailable (running without it): {e}")
 
-        # Redis — optional
+        # Redis — falls back to fakeredis automatically
         try:
             await init_redis()
         except Exception as e:
-            logger.warning(f"Redis unavailable (running without it): {e}")
+            logger.warning(f"Redis init error: {e}")
 
-        # Neo4j — optional
+        # Neo4j — falls back to in-memory graph automatically
         try:
             await init_neo4j()
-            await init_constraints()
+            if not _neo4j_unavailable:
+                await init_constraints()
         except Exception as e:
-            logger.warning(f"Neo4j unavailable (running without it): {e}")
+            logger.warning(f"Neo4j init error: {e}")
 
         logger.info("Startup complete — degraded mode if DBs are offline")
 
