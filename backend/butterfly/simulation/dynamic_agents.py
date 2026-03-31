@@ -502,16 +502,9 @@ class DynamicAgentGenerator:
         event_title: str,
         domains: list[str],
     ) -> list[BehaviorProfile]:
-        """Call Claude once to enrich profiles with domain-specific parameters."""
+        """Call LLM once to enrich profiles with domain-specific parameters."""
         try:
-            import anthropic
-
-            from butterfly.config import settings
-
-            if not settings.anthropic_api_key:
-                return profiles
-
-            client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+            from butterfly.llm.providers import llm_complete, extract_json
 
             schema = {
                 "agent_name": "string",
@@ -537,36 +530,29 @@ Rules:
 - Only use formula values: linear, exponential, step, sigmoid
 - Return ONLY valid JSON array, no explanation"""
 
-            message = await client.messages.create(
-                model="claude-sonnet-4-20250514",
+            raw = await llm_complete(
+                system="You are a simulation expert. Return only valid JSON arrays.",
+                user=prompt,
                 max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}],
             )
-
-            raw = message.content[0].text.strip()
-            # Extract JSON array
-            start = raw.find("[")
-            end = raw.rfind("]") + 1
-            if start >= 0 and end > start:
-                enriched_data = json.loads(raw[start:end])
-                enriched: list[BehaviorProfile] = []
-                for i, data in enumerate(enriched_data):
-                    if i < len(profiles):
-                        try:
-                            # Merge LLM data into existing profile
-                            merged = profiles[i].model_copy(update={
-                                "primary_concern": data.get("primary_concern", profiles[i].primary_concern),
-                                "triggers": [TriggerRule(**t) for t in data.get("triggers", [])] or profiles[i].triggers,
-                                "reaction_functions": [ReactionFn(**r) for r in data.get("reaction_functions", [])] or profiles[i].reaction_functions,
-                                "reaction_speed_hours": data.get("reaction_speed_hours", profiles[i].reaction_speed_hours),
-                                "dampening_factor": data.get("dampening_factor", profiles[i].dampening_factor),
-                            })
-                            enriched.append(merged)
-                        except Exception:
-                            enriched.append(profiles[i])
-                    else:
+            enriched_data = extract_json(raw)
+            enriched: list[BehaviorProfile] = []
+            for i, data in enumerate(enriched_data):
+                if i < len(profiles):
+                    try:
+                        merged = profiles[i].model_copy(update={
+                            "primary_concern": data.get("primary_concern", profiles[i].primary_concern),
+                            "triggers": [TriggerRule(**t) for t in data.get("triggers", [])] or profiles[i].triggers,
+                            "reaction_functions": [ReactionFn(**r) for r in data.get("reaction_functions", [])] or profiles[i].reaction_functions,
+                            "reaction_speed_hours": data.get("reaction_speed_hours", profiles[i].reaction_speed_hours),
+                            "dampening_factor": data.get("dampening_factor", profiles[i].dampening_factor),
+                        })
+                        enriched.append(merged)
+                    except Exception:
                         enriched.append(profiles[i])
-                return enriched
+                else:
+                    enriched.append(profiles[i])
+            return enriched
 
         except Exception as e:
             logger.warning(f"LLM enrichment error: {e}")

@@ -61,30 +61,60 @@ async def llm_complete(
 # ── Provider implementations ──────────────────────────────────────────────────
 
 async def _gemini(api_key: str, system: str, user: str, max_tokens: int) -> str:
-    """Call Google Gemini 1.5 Flash (free tier)."""
-    import google.generativeai as genai
+    """Call Google Gemini (free tier) — tries 2.0-flash then 1.5-flash."""
+    try:
+        from google import genai
+        from google.genai import types as genai_types
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=system,
-        generation_config=genai.GenerationConfig(
-            max_output_tokens=max_tokens,
-            temperature=0.3,
-        ),
-    )
-    # Run in thread pool since google-generativeai is sync
-    import asyncio
-    loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, lambda: model.generate_content(user))
-    text = response.text.strip()
-    logger.debug(f"Gemini response: {len(text)} chars")
-    return text
+        client = genai.Client(api_key=api_key)
+        import asyncio
+        loop = asyncio.get_event_loop()
+
+        # Try models in order — each has its own quota bucket
+        for model_name in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"):
+            try:
+                def _call(m=model_name):
+                    return client.models.generate_content(
+                        model=m,
+                        contents=user,
+                        config=genai_types.GenerateContentConfig(
+                            system_instruction=system,
+                            max_output_tokens=max_tokens,
+                            temperature=0.3,
+                        ),
+                    )
+                response = await loop.run_in_executor(None, _call)
+                text = response.text.strip()
+                logger.debug(f"Gemini ({model_name}) response: {len(text)} chars")
+                return text
+            except Exception as model_err:
+                if "429" in str(model_err) or "RESOURCE_EXHAUSTED" in str(model_err):
+                    logger.debug(f"Gemini {model_name} rate limited, trying next model")
+                    continue
+                raise
+
+        raise RuntimeError("All Gemini models rate limited")
+
+    except ImportError:
+        # Fallback to deprecated google-generativeai SDK
+        import google.generativeai as genai  # type: ignore
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=system,
+            generation_config={"max_output_tokens": max_tokens, "temperature": 0.3},
+        )
+        import asyncio
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(None, lambda: model.generate_content(user))
+        text = response.text.strip()
+        logger.debug(f"Gemini (legacy SDK) response: {len(text)} chars")
+        return text
 
 
 async def _mistral(api_key: str, system: str, user: str, max_tokens: int) -> str:
-    """Call Mistral (mistral-small-latest is free on La Plateforme)."""
-    from mistralai import Mistral
+    """Call Mistral mistral-small-latest (free on La Plateforme)."""
+    from mistralai.client.sdk import Mistral
 
     client = Mistral(api_key=api_key)
     import asyncio

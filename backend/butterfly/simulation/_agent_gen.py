@@ -117,12 +117,8 @@ class DynamicAgentGenerator:
         self, profiles: list[BehaviorProfile], event_title: str, domains: list[str]
     ) -> list[BehaviorProfile]:
         try:
-            import anthropic
+            from butterfly.llm.providers import llm_complete, extract_json
 
-            from butterfly.config import settings
-            if not settings.anthropic_api_key:
-                return profiles
-            client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
             schema = {"agent_name": "str", "primary_concern": "str",
                       "triggers": [{"variable": "str", "operator": "str", "threshold": 0.0, "condition": "str"}],
                       "reaction_functions": [{"target_variable": "str", "formula": "linear|exponential|step|sigmoid",
@@ -132,30 +128,29 @@ class DynamicAgentGenerator:
                       f'Agents: {[p.agent_name for p in profiles]}\n'
                       f'Return JSON array of enriched BehaviorProfiles matching schema:\n'
                       f'{json.dumps(schema)}\nReturn ONLY valid JSON array.')
-            msg = await client.messages.create(
-                model="claude-sonnet-4-20250514", max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}],
+
+            raw = await llm_complete(
+                system="You are a simulation expert. Return only valid JSON arrays.",
+                user=prompt,
+                max_tokens=2000,
             )
-            raw = msg.content[0].text.strip()
-            start, end = raw.find("["), raw.rfind("]") + 1
-            if start >= 0 and end > start:
-                data = json.loads(raw[start:end])
-                enriched = []
-                for i, d in enumerate(data):
-                    if i < len(profiles):
-                        try:
-                            enriched.append(profiles[i].model_copy(update={
-                                "primary_concern": d.get("primary_concern", profiles[i].primary_concern),
-                                "triggers": [TriggerRule(**t) for t in d.get("triggers", [])] or profiles[i].triggers,
-                                "reaction_functions": [ReactionFn(**r) for r in d.get("reaction_functions", [])] or profiles[i].reaction_functions,
-                                "reaction_speed_hours": d.get("reaction_speed_hours", profiles[i].reaction_speed_hours),
-                                "dampening_factor": d.get("dampening_factor", profiles[i].dampening_factor),
-                            }))
-                        except Exception:
-                            enriched.append(profiles[i])
-                    else:
+            data = extract_json(raw)
+            enriched = []
+            for i, d in enumerate(data):
+                if i < len(profiles):
+                    try:
+                        enriched.append(profiles[i].model_copy(update={
+                            "primary_concern": d.get("primary_concern", profiles[i].primary_concern),
+                            "triggers": [TriggerRule(**t) for t in d.get("triggers", [])] or profiles[i].triggers,
+                            "reaction_functions": [ReactionFn(**r) for r in d.get("reaction_functions", [])] or profiles[i].reaction_functions,
+                            "reaction_speed_hours": d.get("reaction_speed_hours", profiles[i].reaction_speed_hours),
+                            "dampening_factor": d.get("dampening_factor", profiles[i].dampening_factor),
+                        }))
+                    except Exception:
                         enriched.append(profiles[i])
-                return enriched
+                else:
+                    enriched.append(profiles[i])
+            return enriched
         except Exception as e:
             logger.warning(f"LLM enrichment error: {e}")
         return profiles

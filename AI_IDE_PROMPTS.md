@@ -1154,7 +1154,7 @@ The product now:
   - Traces causal chains across ANY domain
   - Shows what 3rd and 4th order effects nobody else is talking about
   - Is fully open source (MIT)
-  - Has a live demo on Vercel
+  - Has a live demo on Vercel (for now we havent deployed it so you can ignore this one part)
 
 [CONSTRAINTS]
 - README must be completable in < 5 minutes (quickstart to first result)
