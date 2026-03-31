@@ -8,23 +8,28 @@ from neo4j import AsyncDriver, AsyncGraphDatabase
 from butterfly.config import settings
 
 neo4j_driver: AsyncDriver | None = None
+_neo4j_unavailable: bool = False  # cached unavailability to skip retries
 
 
 async def init_neo4j() -> AsyncDriver | None:
     """Initialize Neo4j driver."""
-    global neo4j_driver
+    global neo4j_driver, _neo4j_unavailable
     try:
         neo4j_driver = AsyncGraphDatabase.driver(
             settings.neo4j_uri,
             auth=(settings.neo4j_user, settings.neo4j_password),
+            connection_timeout=3.0,   # fail fast — don't wait 30s
+            max_connection_lifetime=300,
         )
         async with neo4j_driver.session() as session:
             await session.run("RETURN 1")
+        _neo4j_unavailable = False
         logger.info("Neo4j connection established")
         return neo4j_driver
     except Exception as e:
         logger.error(f"Failed to connect to Neo4j: {e}")
         neo4j_driver = None
+        _neo4j_unavailable = True
         raise
 
 
@@ -37,8 +42,10 @@ async def close_neo4j() -> None:
 
 
 async def get_neo4j() -> AsyncDriver:
-    """Get Neo4j driver."""
-    global neo4j_driver
+    """Get Neo4j driver. Raises immediately if known unavailable."""
+    global neo4j_driver, _neo4j_unavailable
+    if _neo4j_unavailable:
+        raise ConnectionError("Neo4j is unavailable (cached)")
     if neo4j_driver is None:
         neo4j_driver = await init_neo4j()
     return neo4j_driver

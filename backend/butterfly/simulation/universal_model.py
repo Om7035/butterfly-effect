@@ -13,7 +13,13 @@ from typing import TYPE_CHECKING
 import networkx as nx
 from mesa import Agent, Model
 from mesa.datacollection import DataCollector
-from mesa.time import RandomActivation
+
+# Mesa 3.x: RandomActivation is deprecated — use AgentSet-based stepping
+try:
+    from mesa.time import RandomActivation
+    _USE_LEGACY_SCHEDULER = True
+except ImportError:
+    _USE_LEGACY_SCHEDULER = False
 
 from butterfly.simulation.dynamic_agents import BehaviorProfile, ReactionFn
 
@@ -115,14 +121,25 @@ class UniversalModel(Model):
         # Build influence graph from profiles
         self.influence_graph: nx.DiGraph = self._build_influence_graph(profiles)
 
-        # Create agents
-        self.schedule = RandomActivation(self)
+        # Create agents — use AgentSet (Mesa 3.x) or RandomActivation (legacy)
+        self._step_count = 0
         self.agent_by_id: dict[str, UniversalAgent] = {}
 
-        for i, profile in enumerate(profiles):
-            agent = UniversalAgent(self, profile)
-            self.schedule.add(agent)
-            self.agent_by_id[profile.agent_id] = agent
+        if _USE_LEGACY_SCHEDULER:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                self.schedule = RandomActivation(self)
+            for profile in profiles:
+                agent = UniversalAgent(self, profile)
+                self.schedule.add(agent)
+                self.agent_by_id[profile.agent_id] = agent
+        else:
+            # Mesa 3.1+ — agents register themselves via super().__init__
+            self.schedule = None
+            for profile in profiles:
+                agent = UniversalAgent(self, profile)
+                self.agent_by_id[profile.agent_id] = agent
 
         # DataCollector: track all environment variables
         env_keys = list(self.environment.keys())
@@ -132,9 +149,18 @@ class UniversalModel(Model):
 
     def step(self) -> None:
         self.datacollector.collect(self)
-        self.schedule.step()
+        if self.schedule is not None:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                self.schedule.step()
+            self._step_count = self.schedule.steps
+        else:
+            # Mesa 3.1+ AgentSet API
+            self.agents.shuffle_do("step")
+            self._step_count += 1
         if self.progress_cb:
-            self.progress_cb(self.schedule.steps)
+            self.progress_cb(self._step_count)
 
     def log_event(
         self,

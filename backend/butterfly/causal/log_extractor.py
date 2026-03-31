@@ -52,6 +52,7 @@ _VAR_LABELS: dict[str, str] = {
     "displacement_count":    "Civilian displacement rises",
     "insurance_premium":     "Insurance premiums spike",
     "interest_rate_delta":   "Interest rates change",
+    "interest_rate":         "Interest rates rise",
     "mortgage_rate":         "Mortgage rates rise",
     "housing_starts":        "Housing construction drops",
     "portfolio_exposure":    "Investment portfolios rebalance",

@@ -1,6 +1,6 @@
 ﻿---
 name: New domain request
-about: Request support for a new event domain (cryptocurrency, real estate, sports, etc.)
+about: Request support for a new event domain (cryptocurrency, sports, real estate, etc.)
 title: "feat: add [DOMAIN] domain support"
 labels: new-domain
 assignees: ''
@@ -10,46 +10,40 @@ assignees: ''
 <!-- e.g., "cryptocurrency", "real estate", "sports", "energy transition" -->
 
 ## Why this domain matters
+<!-- What kinds of questions would this unlock? Give 2-3 examples. -->
 
-Example questions this would unlock:
+Example questions:
 1. 
 2. 
 3. 
 
-## Key agents
+## Key agents for this domain
+<!-- Who are the main actors that react to events in this domain? -->
+<!-- e.g., for cryptocurrency: exchanges, miners, institutional investors, regulators -->
 
-Who are the main actors that react to events in this domain?
+- Agent 1: [name] — [what they optimize for]
+- Agent 2: [name] — [what they optimize for]
+- Agent 3: [name] — [what they optimize for]
 
-| Agent name | Type | What they optimize for |
-|-----------|------|----------------------|
-| | | |
-| | | |
+## Key variables
+<!-- What environment variables would agents read and write? -->
+<!-- e.g., btc_price, hash_rate, exchange_volume, regulatory_pressure -->
 
-## Key environment variables
-
-What variables would agents read and write?
-
-| Variable name | Description | Typical range |
-|--------------|-------------|---------------|
-| | | |
+- `variable_name` — description, typical range
 
 ## Free data sources
+<!-- Are there free APIs that provide data for this domain? -->
 
-| Source | URL | What it provides |
-|--------|-----|-----------------|
-| | | |
+- Source name: URL — what it provides
 
 ## Worked example
+<!-- Show one question → expected chain (even if approximate) -->
 
 **Question:** 
 
 **Expected chain:**
-```
-[1st]  t+?h   cause â”€â”€â–¶ effect   (confidence estimate)
-[2nd]  t+?h   ...
-```
-
-**Non-obvious insight:**
+- Hop 1 [t+?h]: cause → effect (confidence estimate)
+- Hop 2 [t+?h]: ...
 
 ## Are you willing to implement this?
 - [ ] Yes, I'll open a PR

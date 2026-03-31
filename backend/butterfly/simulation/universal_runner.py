@@ -159,7 +159,7 @@ class UniversalRunner:
         snapshots: dict[int, dict] = {}
         for _ in range(steps):
             model.step()
-            step = model.schedule.steps
+            step = model._step_count
             # Snapshot every 6 steps to keep memory low
             if step % 6 == 0 or step == steps:
                 snapshots[step] = model.get_environment_snapshot()

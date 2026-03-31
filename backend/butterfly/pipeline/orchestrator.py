@@ -357,10 +357,11 @@ def _build_event_signal(event) -> dict:
         "financial_markets": {"interest_rate_delta": magnitude * 0.6, "risk_sentiment": 0.3},
         "energy":            {"oil_price": 80 + magnitude * 20, "conflict_intensity": magnitude * 0.5},
         "climate":           {"storm_intensity": magnitude, "infrastructure_damage": magnitude * 0.5},
-        "health":            {"infection_rate": magnitude * 0.2, "event_magnitude": magnitude},
+        "health":            {"infection_rate": magnitude * 0.25, "event_magnitude": magnitude},
         "technology":        {"ai_capability_index": magnitude, "demand_shock": magnitude * 0.5},
         "trade":             {"interest_rate_delta": magnitude * 0.4, "risk_sentiment": 0.4},
         "humanitarian":      {"conflict_intensity": magnitude * 0.6, "displacement_count": magnitude * 50000},
+        "political":         {"conflict_intensity": magnitude * 0.3, "risk_sentiment": 0.4},
     }
 
     for domain in event.domain:
