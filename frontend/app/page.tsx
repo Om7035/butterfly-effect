@@ -11,6 +11,8 @@ import InsightCard from "@/components/InsightCard";
 import EvidencePanelNew from "@/components/EvidencePanelNew";
 import ChainView from "@/components/chain/ChainView";
 import Timeline from "@/components/chain/Timeline";
+import ModelQualityPanel from "@/components/ModelQualityPanel";
+import AlternativeChainsPanel from "@/components/AlternativeChainsPanel";
 import { buildChainModel, type RawNode, type RawEdge, type RawInsight } from "@/lib/chainData";
 import { categorizeInsights } from "@/lib/insightCategories";
 import {
@@ -138,6 +140,12 @@ export default function Home() {
   const [fredData, setFredData] = useState<Record<string, {value:number;delta:number;date:string}>>({});
   const [predictabilityHorizon, setPredictabilityHorizon] = useState<{hours:number;label:string;warning:string} | undefined>(undefined);
 
+  // Tier 1+2 credibility data
+  const [causalChains, setCausalChains] = useState<any[]>([]);
+  const [feedbackLoops, setFeedbackLoops] = useState<any[]>([]);
+  const [modelQuality, setModelQuality] = useState<any>(null);
+  const [credibilityMetadata, setCredibilityMetadata] = useState<any>(null);
+
   // View toggle — persisted across analyses within the session
   const [viewMode, setViewMode] = useState<"chain" | "graph">("chain");
   useEffect(() => {
@@ -217,6 +225,10 @@ export default function Home() {
     setFredData({});
     setPredictabilityHorizon(undefined);
     setPulsingHopId(null);
+    setCausalChains([]);
+    setFeedbackLoops([]);
+    setModelQuality(null);
+    setCredibilityMetadata(null);
 
     try {
       await api.analyze.stream(q, (event) => {
@@ -286,6 +298,12 @@ export default function Home() {
           if (ev.evidence) setLiveEvidence(ev.evidence as any[]);
           if (ev.fred_data) setFredData(ev.fred_data as any);
           if (ev.predictability_horizon) setPredictabilityHorizon(ev.predictability_horizon as any);
+
+          // Store Tier 1+2 credibility data
+          if (ev.causal_chains) setCausalChains(ev.causal_chains as any[]);
+          if (ev.feedback_loops) setFeedbackLoops(ev.feedback_loops as any[]);
+          if (ev.model_quality) setModelQuality(ev.model_quality as any);
+          if (ev.credibility_metadata) setCredibilityMetadata(ev.credibility_metadata as any);
 
           setPhase("done");
         }
@@ -455,6 +473,10 @@ export default function Home() {
                         )}
                       </div>
                       <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                        {/* Model Quality Panel */}
+                        <ModelQualityPanel modelQuality={modelQuality} credibility={credibilityMetadata} />
+
+                        {/* Insights */}
                         {categorizeInsights(insights).map((group) => (
                           <div key={group.category}>
                             <div style={{ fontSize: "9px", fontWeight: "800", color: "#a78bfa", letterSpacing: "0.1em", marginBottom: "8px" }}>
@@ -470,6 +492,9 @@ export default function Home() {
                             </div>
                           </div>
                         ))}
+
+                        {/* Alternative Chains & Feedback Loops */}
+                        <AlternativeChainsPanel chains={causalChains} feedbackLoops={feedbackLoops} />
                       </div>
                     </motion.div>
                   )}
