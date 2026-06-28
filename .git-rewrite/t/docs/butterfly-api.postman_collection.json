@@ -1,0 +1,106 @@
+{
+  "info": {
+    "name": "butterfly-effect API",
+    "description": "Causal inference engine REST API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "event_id", "value": "event_abc123" },
+    { "key": "run_id", "value": "sim_abc123" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "Create Event",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/events",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"Fed raises rates 75bps\",\"description\":\"FOMC June 2022\",\"source\":\"manual\",\"occurred_at\":\"2022-06-15T14:00:00Z\",\"raw_text\":\"The Federal Reserve raised its benchmark interest rate by 75 basis points.\"}"
+        }
+      }
+    },
+    {
+      "name": "List Events",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/events?page=1&limit=20"
+      }
+    },
+    {
+      "name": "Get Event",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/events/{{event_id}}"
+      }
+    },
+    {
+      "name": "Start Causal Analysis",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/causal/analyze",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event_id\":\"{{event_id}}\",\"horizon_hours\":168}"
+        }
+      }
+    },
+    {
+      "name": "Get Causal Chain",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/causal/{{event_id}}"
+      }
+    },
+    {
+      "name": "Get Causal Edges",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/causal/{{event_id}}/edges"
+      }
+    },
+    {
+      "name": "Get Counterfactual Diff",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/causal/{{event_id}}/diff"
+      }
+    },
+    {
+      "name": "Run Simulation",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/simulation/run",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event_id\":\"{{event_id}}\",\"n_agents\":100,\"steps\":168}"
+        }
+      }
+    },
+    {
+      "name": "Get Simulation Status",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/simulation/{{run_id}}"
+      }
+    },
+    {
+      "name": "Get Simulation Diff",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/simulation/{{run_id}}/diff"
+      }
+    }
+  ]
+}

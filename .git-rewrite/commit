@@ -1,0 +1,14 @@
+tree 035c9c0cbb40b5885a70ebf71bbe50384e2f4323
+parent c572e91aa8987742114154e39c0cdc8e03a846ad
+author Butterfly Effect Dev <dev@butterfly-effect.dev> 1774872633 +0530
+committer Butterfly Effect Dev <dev@butterfly-effect.dev> 1774872633 +0530
+
+fix: Mesa 3 Agent init, GDELT timeout 10s->4s, stronger event signals, domain detection order, Redis None guard
+
+- universal_model.py: Agent.__init__ no longer takes unique_id in Mesa 3
+- universal_fetcher.py: GDELT timeout 10s->4s, cap queries to 1 (was 3x10s = 30s wasted)
+- orchestrator.py: 96 steps (was 48), stronger domain signals, better keyword detection
+- redis.py: guard against None client in set/get/delete_cache
+- backend/.env: add port 3001 to CORS_ORIGINS
+
+Pipeline: 56s -> 30s, 2 hops -> 3 hops, simulation works end-to-end without any API keys

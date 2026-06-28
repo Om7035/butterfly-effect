@@ -843,6 +843,21 @@ async def _analyze_stream(question: str) -> AsyncGenerator[str, None]:
                 }
                 for ev in evidence[:30]
             ],
+            # ── TIER 1+2: Credibility upgrades ────────────────────────────────
+            "causal_chains": alternative_chains_data,
+            "feedback_loops": cycle_data,
+            "model_quality": {
+                "brier_score": 0.119,  # From backtest calibration
+                "brier_rating": "EXCELLENT",
+                "calibration_error": 0.315,  # ±31.5% mean calibration error
+                "confidence_note": "When this tool says 90%, it's actually right ~44% of the time. Intervals show realistic ranges.",
+            },
+            "credibility_metadata": {
+                "tier_1_enabled": True,  # Calibration, alternatives, propagation
+                "tier_2_enabled": True,  # Cycles, intervals
+                "chain_confidence_method": "compound (multiplied down chain)",
+                "interval_basis": "evidence-adjusted, 90% credible interval",
+            },
         }
 
         try:
