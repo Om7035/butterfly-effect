@@ -60,24 +60,26 @@
 }
 ```
 
-## ⏳ IN PROGRESS
+## ✅ COMPLETE (Continued)
 
 ### Frontend Integration
-- [ ] Add state variables to `page.tsx` for:
-  - `causalChains`
-  - `feedbackLoops`
-  - `modelQuality`
-  - `credibilityMetadata`
+- [x] Add state variables to `page.tsx` for:
+  - [x] `causalChains`
+  - [x] `feedbackLoops`
+  - [x] `modelQuality`
+  - [x] `credibilityMetadata`
 
-- [ ] Update SSE handler in `page.tsx` to:
-  - Extract these fields from the response
-  - Set the state variables
-  - Pass to UI components
+- [x] Update SSE handler in `page.tsx` to:
+  - [x] Extract these fields from the response
+  - [x] Set the state variables
+  - [x] Pass to UI components
 
-- [ ] Integrate components into insights panel:
-  - Add `ModelQualityPanel` at top of insights section
-  - Add `AlternativeChainsPanel` below insights
-  - Ensure responsive layout on mobile
+- [x] Integrate components into insights panel:
+  - [x] Added `ModelQualityPanel` at top of insights section
+  - [x] Added `AlternativeChainsPanel` below insights
+  - [x] Responsive layout (same as existing panels)
+
+## ⏳ IN PROGRESS
 
 ### Testing
 - [ ] Test backend SSE response includes all new fields
@@ -101,32 +103,37 @@
 
 ## Implementation Checklist
 
-**To complete Tier 1+2 integration, you need to:**
+**Status: Frontend integration complete. Awaiting testing.**
 
-1. **Update `frontend/app/page.tsx`:**
-   - Add 4 new state variables (lines ~140-150)
-   - Update SSE message handler to extract new fields (around line 248)
-   - Pass state to components in render (around lines 458-472)
+**What's been done:**
+1. ✅ Updated `frontend/app/page.tsx`:
+   - ✅ Added 4 new state variables (causalChains, feedbackLoops, modelQuality, credibilityMetadata)
+   - ✅ Updated SSE message handler to extract and store new fields
+   - ✅ Reset new state on new analysis
+   - ✅ Pass state to components in render
 
-2. **Update insights panel rendering:**
-   - Add `<ModelQualityPanel>` before insights list
-   - Add `<AlternativeChainsPanel>` after insights list
+2. ✅ Updated insights panel rendering:
+   - ✅ Added `<ModelQualityPanel>` before insights list
+   - ✅ Added `<AlternativeChainsPanel>` after insights list
 
-3. **Test the integration:**
-   - Run `npm run dev` in frontend/
-   - Submit a query and verify:
-     - Model Quality panel appears
-     - Alternative chains appear
-     - Feedback loops appear if detected
+3. ⏳ Test the integration:
+   - [ ] Run `npm run dev` in frontend/
+   - [ ] Submit a query and verify:
+     - [ ] Model Quality panel appears with Brier score and calibration error
+     - [ ] Alternative chains appear with primary chain expanded
+     - [ ] Feedback loops appear if detected
+   - [ ] Verify expandable sections work
+   - [ ] Check responsive behavior
 
-**Estimated time:** 1-2 hours for full integration + testing
+**Next step:** Start frontend dev server and test the integration end-to-end
 
-## Files Changed So Far
+## Files Changed
 
 ```
-backend/butterfly/api/analyze.py          ← Logic added, response payload updated
-frontend/components/ModelQualityPanel.tsx  ← NEW
-frontend/components/AlternativeChainsPanel.tsx ← NEW
+backend/butterfly/api/analyze.py               ← Logic added, response payload updated
+frontend/components/ModelQualityPanel.tsx      ← NEW (Tier 1+2 metrics display)
+frontend/components/AlternativeChainsPanel.tsx ← NEW (chains + feedback loops display)
+frontend/app/page.tsx                          ← State + SSE handler + component integration
 ```
 
 ## Key Features Integrated
