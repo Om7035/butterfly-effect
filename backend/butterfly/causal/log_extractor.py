@@ -58,6 +58,18 @@ class CausalChain:
     domain_coverage: list = field(default_factory=list)
     cpath_ranking: list = field(default_factory=list)
 
+
+@dataclass
+class SimulationCausalChain:
+    """Causal chain output from simulation."""
+    event_title: str
+    chains: list = field(default_factory=list)
+    feedback_loops: list = field(default_factory=list)
+    total_hops: int = 0
+    peak_effect_step: int = 0
+    domain_coverage: list = field(default_factory=list)
+    extraction_ms: float = 0.0
+
     def model_dump(self) -> dict:
         return {
             "event_title": self.event_title,

@@ -40,7 +40,7 @@ def _soft_clamp(x: float) -> float:
 # ── Result model ──────────────────────────────────────────────────────────────
 
 @dataclass
-class SimulationResult:
+class UniversalSimulationResult:
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     steps_completed: int = 0
     agent_count: int = 0
