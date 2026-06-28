@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import math
 import os
 import time
 from typing import AsyncGenerator
@@ -15,12 +14,16 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel
 
-from butterfly.logging_utils import DebugTimer, log_stage, log_fetch_result, log_graph_build, log_data_sample
-from butterfly.backtesting.calibration import CalibrationAnalyzer
 from butterfly.backtesting.alternative_chains import AlternativeChainsBuilder
-from butterfly.backtesting.uncertainty_propagation import UncertaintyPropagator
 from butterfly.backtesting.confidence_intervals import IntervalEstimator
 from butterfly.causal.cycle_detector import CycleDetector
+from butterfly.logging_utils import (
+    DebugTimer,
+    log_data_sample,
+    log_fetch_result,
+    log_graph_build,
+    log_stage,
+)
 
 router = APIRouter(prefix="/api/v1/analyze", tags=["analyze"])
 
@@ -43,7 +46,6 @@ def _build_graph(event, evidence: list | None = None) -> dict:
     Correct flow: Evidence → NER → nodes. LLM seeds → fill where evidence sparse.
     """
     nodes: list[dict] = []
-    edges: list[dict] = []
     event_domains = getattr(event, "domain", [])
 
     nodes.append({
@@ -239,7 +241,6 @@ def _merge_deep_seeds(graph: dict, deep_data: dict, event) -> dict:
     existing_labels = {n["label"].lower()[:20] for n in nodes}
 
     deep_seeds = deep_data.get("deep_causal_seeds", [])
-    cross_links = deep_data.get("cross_domain_links", [])
     deep_actors = deep_data.get("non_obvious_actors", [])
 
     # Add deep seeds as hop-3 nodes
@@ -319,7 +320,6 @@ async def _fetch_fred_data(domains: list[str]) -> dict[str, dict]:
             return {}
 
         import httpx
-        from butterfly.config import settings
 
         series_to_fetch = ["FEDFUNDS", "MORTGAGE30US", "HOUST", "UNRATE", "T10Y2Y"]
         async with httpx.AsyncClient(timeout=3.0) as client:
@@ -645,8 +645,8 @@ async def _analyze_stream(question: str) -> AsyncGenerator[str, None]:
 
         sim_start = time.time()
         with DebugTimer("Building DAG and computing C-Path scores"):
-            from butterfly.causal.dag import DAGBuilder
             from butterfly.causal.cpath import CPathCalculator
+            from butterfly.causal.dag import DAGBuilder
             dag = DAGBuilder().build_from_graph_data(graph)
             cci_scores = CPathCalculator().calculate(dag, "root")
 
@@ -698,7 +698,6 @@ async def _analyze_stream(question: str) -> AsyncGenerator[str, None]:
             "stats": {"nodes": n_nodes, "agents": n_agents, "steps": sim_result.steps_completed},
         })
 
-        insights_start = time.time()
         raw_insights: list[dict] = []
         try:
             with DebugTimer("Extracting causal chain from simulation"):
@@ -746,14 +745,12 @@ async def _analyze_stream(question: str) -> AsyncGenerator[str, None]:
 
         # 2. Apply uncertainty propagation to graph nodes
         with DebugTimer("Computing confidence intervals"):
-            estimator = IntervalEstimator()
             interval_estimator = IntervalEstimator()
 
             # Update nodes with confidence intervals
             for node in graph["nodes"]:
                 if node.get("hop", 0) > 0:  # Skip root
                     point_conf = node.get("confidence", 0.5)
-                    hop_num = node.get("hop", 1)
 
                     # Evidence count approximation (number of sources mentioning this node)
                     evidence_count = min(5, len(evidence) // max(1, len(graph["nodes"]) - 1))
@@ -955,7 +952,8 @@ async def validate_analysis(run_id: str, body: ValidateRequest):
     Submit ground-truth validation for a completed analysis.
     Stores in SQLite. After enough validations, confidence weights can be retrained.
     """
-    import sqlite3, os
+    import os
+    import sqlite3
     db_path = os.path.join(_DATA_DIR, "butterfly.db")
     os.makedirs(_DATA_DIR, exist_ok=True)
 
