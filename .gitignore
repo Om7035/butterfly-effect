@@ -60,3 +60,6 @@ htmlcov/
 # Neo4j
 neo4j_data/
 postgres_data/
+
+# Local config (contains secrets)
+.kiro/
