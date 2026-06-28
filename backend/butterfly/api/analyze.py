@@ -16,6 +16,11 @@ from loguru import logger
 from pydantic import BaseModel
 
 from butterfly.logging_utils import DebugTimer, log_stage, log_fetch_result, log_graph_build, log_data_sample
+from butterfly.backtesting.calibration import CalibrationAnalyzer
+from butterfly.backtesting.alternative_chains import AlternativeChainsBuilder
+from butterfly.backtesting.uncertainty_propagation import UncertaintyPropagator
+from butterfly.backtesting.confidence_intervals import IntervalEstimator
+from butterfly.causal.cycle_detector import CycleDetector
 
 router = APIRouter(prefix="/api/v1/analyze", tags=["analyze"])
 
@@ -727,6 +732,73 @@ async def _analyze_stream(question: str) -> AsyncGenerator[str, None]:
             "verified": snn_summary["verified"],
             "rejected": snn_summary["rejected"],
         })
+
+        # ── TIER 1+2: Integrate credibility upgrades ──────────────────────────
+
+        # 1. Detect cycles and extract alternative chains
+        with DebugTimer("Detecting cycles and alternatives"):
+            cycle_detector = CycleDetector()
+            cycles = cycle_detector.find_cycles(graph)
+
+            chains = AlternativeChainsBuilder.extract_top_k_chains(graph, k=3)
+            log_data_sample("Alternative chains",
+                          [{"rank": c.rank, "prob": c.cumulative_probability} for c in chains])
+
+        # 2. Apply uncertainty propagation to graph nodes
+        with DebugTimer("Computing confidence intervals"):
+            estimator = IntervalEstimator()
+            interval_estimator = IntervalEstimator()
+
+            # Update nodes with confidence intervals
+            for node in graph["nodes"]:
+                if node.get("hop", 0) > 0:  # Skip root
+                    point_conf = node.get("confidence", 0.5)
+                    hop_num = node.get("hop", 1)
+
+                    # Evidence count approximation (number of sources mentioning this node)
+                    evidence_count = min(5, len(evidence) // max(1, len(graph["nodes"]) - 1))
+
+                    # Compute interval with evidence adjustment
+                    interval = interval_estimator.from_evidence_base_rate(
+                        point_estimate=point_conf,
+                        evidence_count=evidence_count,
+                        confidence_level=0.90
+                    )
+
+                    # Store in node for frontend
+                    node["confidence_interval"] = {
+                        "lower": round(interval.lower, 2),
+                        "point": round(interval.point, 2),
+                        "upper": round(interval.upper, 2),
+                        "method": interval.method,
+                    }
+
+        # 3. Add cycle information if detected
+        if cycles:
+            logger.info(f"[ANALYZE] {len(cycles)} feedback loop(s) detected")
+            cycle_data = []
+            for cycle in cycles:
+                cycle_data.append({
+                    "nodes": cycle.nodes,
+                    "length": cycle.length,
+                    "mean_confidence": round(cycle.mean_confidence, 2),
+                    "has_feedback": cycle.has_feedback,
+                    "description": f"{cycle.length}-node feedback loop"
+                })
+        else:
+            cycle_data = []
+
+        # 4. Prepare alternative chains for frontend
+        alternative_chains_data = [
+            {
+                "rank": chain.rank,
+                "hops": [h["id"] for h in chain.hops],
+                "description": chain.description,
+                "cumulative_probability": round(chain.cumulative_probability, 2),
+                "primary": (chain.rank == 1),
+            }
+            for chain in chains
+        ]
 
         # ── Complete ──────────────────────────────────────────────────────────
         result_payload = {
