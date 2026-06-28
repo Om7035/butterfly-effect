@@ -5,14 +5,11 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        dark: '#0f172a',
-        slate: {
-          50: '#f8fafc',
-          900: '#0f172a',
-        },
+        dark: '#0a0e1a',
       },
     },
   },
