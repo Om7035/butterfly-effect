@@ -9,7 +9,7 @@ async def run(event, graph: dict, run_id: str, data_dir: str):
     """Returns (dag, cci_scores, sim_result). Never raises — returns empty result on failure."""
     from butterfly.causal.dag import DAGBuilder
     from butterfly.causal.cpath import CPathCalculator
-    from butterfly.simulation.universal_runner import UniversalRunner, SimulationResult
+    from butterfly.simulation.universal_runner import UniversalRunner, UniversalSimulationResult
 
     dag = DAGBuilder().build_from_graph_data(graph)
     cci_scores = CPathCalculator().calculate(dag, "root")
@@ -26,4 +26,4 @@ async def run(event, graph: dict, run_id: str, data_dir: str):
         return dag, cci_scores, sim_result
     except Exception as e:
         logger.error(f"[STAGE_SIM] Failed: {e}")
-        return dag, cci_scores, SimulationResult()
+        return dag, cci_scores, UniversalSimulationResult()

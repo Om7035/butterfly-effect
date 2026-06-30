@@ -90,7 +90,7 @@ class UniversalRunner:
         precomputed_dag=None,
         precomputed_cci: dict | None = None,
         **kwargs,
-    ) -> SimulationResult:
+    ) -> UniversalSimulationResult:
         """
         Run hybrid simulation: mathematical baseline + swarm corrections.
 
@@ -109,7 +109,7 @@ class UniversalRunner:
         logger.info(f"[RUNNER] Starting hybrid simulation for '{title}' → {log_path}")
 
         nodes = graph_data.get("nodes", [])
-        result = SimulationResult(run_id=run_id)
+        result = UniversalSimulationResult(run_id=run_id)
 
         if not nodes:
             logger.warning("[RUNNER] No nodes — returning empty simulation")
