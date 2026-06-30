@@ -63,3 +63,8 @@ postgres_data/
 
 # Local config (contains secrets)
 .kiro/
+
+# Documentation — exclude internal/working notes, keep public docs (README, CONTRIBUTING, etc)
+TIER_*.md
+*_EXECUTIVE_SUMMARY.md
+*_SUMMARY.md
