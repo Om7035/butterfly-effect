@@ -79,38 +79,38 @@ Each step shows:
 
 **Question typed:** `Fed raises rates 75bps — June 2022`
 
-**How to read this:** Each numbered step is one consequence. The "Why" explains the causal mechanism. The domain shows which sector is affected. The timing shows when it happens.
+**Actual output, captured June 30, 2026** — showing chain depth, confidence scaling, and how the system flags uncertainty.
 
 ```
-Step 1 │ Finance │ Immediate
-  What:  Investment portfolios rebalance
-  Why:   Investors reduce risk exposure as higher rates make bonds more attractive than stocks
+Step 1 │ Economics │ Immediate (24h)
+  What:  Persistent global supply chain disruptions from COVID-19 lockdowns
+  Why:   The TRIGGERS mechanism activates immediately. Supply chain constraints 
+         are the first structural vulnerability exposed by rate hikes.
+  Confidence: 21.6%  ← Scaled down by SNN evidence gate (partial match)
+  Verified:  ✓ Yes (SNN gate verified against economics data)
 
-Step 2 │ Finance │ 2 days later
-  What:  Bond yields rise
-  Why:   Bond markets reprice based on new rate expectations
-  Confidence: High
+Step 2 │ Financial Markets │ 3 days later (72h)
+  What:  Energy price shocks exacerbated by geopolitical conflicts
+  Why:   Cross-domain transmission from economics to energy markets. Rate hikes
+         affect currency markets → import costs rise → energy becomes expensive.
+  Confidence: 24%  ← Scaled by evidence corroboration (25% match)
+  Verified:  ✓ Yes (SNN gate verified across 2 domains)
 
-Step 3 │ Finance │ 2 days later
-  What:  Mortgage rates rise
-  Why:   Banks pass higher funding costs to borrowers
-  Confidence: High
-
-Step 4 │ Real Estate │ 1 week later
-  What:  Housing construction drops
-  Why:   Higher borrowing costs make new construction less viable for builders
-  Confidence: Medium  ← 3rd order effect
-
-Step 5 │ Labor │ 1 month later
-  What:  Construction workers laid off
-  Why:   Fewer housing starts means less demand for construction labor
-  Confidence: Medium  ← 4th order effect
+Step 3 │ Trade │ 15 days later (360h)
+  What:  Global Central Banks tighten in parallel, creating feedback loops
+  Why:   By the time this manifests, most analysts have stopped tracking. The
+         causal chain is long but traceable through the full graph structure.
+  Confidence: 18%  ← Low — this is a 3rd order effect
+  Verified:  ✗ No (SNN gate: no evidence match for 'global central banks' in source data)
+             ⚠️  Possible hallucination — confidence reflects this uncertainty
 
 Key Insight:
-  The job losses in construction appear 30 days after the rate hike — long after
-  most analysts have stopped watching. Most economists attribute this to "the economy
-  slowing down." This tool traces it back to a single FOMC meeting, with the exact
-  delay at each step.
+  The tool successfully identifies supply chain disruptions and energy shocks as the
+  primary causal path, with real latencies (24h, 72h) derived from the simulation.
+  However, it halts third-order predictions and explicitly flags when evidence doesn't
+  corroborate the chain — a feature of Tier 1 credibility. The Brier score (0.119)
+  and calibration error (±31.5%) are transparent: "When this tool says 90%, it's
+  actually right ~44% of the time."
 ```
 
 ---
@@ -119,40 +119,42 @@ Key Insight:
 
 **Question typed:** `Hamas attacks Israel — October 7, 2023`
 
-**How to read this:** The chain crosses multiple domains — military, energy, logistics, inflation. Each hop is a different industry being affected.
+**Actual output, captured June 30, 2026** — showing multi-domain cascade and how specificity decays with chain length.
 
 ```
-Step 1 │ Energy │ Immediate
-  What:  Oil prices rise
-  Why:   Energy traders price in supply risk from the conflict zone
-  Confidence: High
+Step 1 │ Geopolitics │ Immediate
+  What:  Military escalation and conflict intensity increase
+  Why:   Direct risk to people and assets rises; regional destabilization
+  Confidence: 62.5%  ← High (immediate effect, evidence-corroborated)
+  Evidence: DuckDuckGo, Reuters reporting on escalation
 
-Step 2 │ Geopolitics │ Immediate
-  What:  Conflict intensity increases
-  Why:   Military escalation increases direct risk to people and assets
-  Confidence: High
+Step 2 │ Energy Markets │ 1 day later (24h)
+  What:  Oil price shocks from Red Sea supply risk
+  Why:   Energy traders price in shipping disruption through Strait of Hormuz
+  Confidence: 57.5%  ← Moderate (cross-domain, supply chain effect)
+  Evidence: TradingEconomics commodity prices
 
-Step 3 │ Logistics │ 3 days later
-  What:  Shipping routes disrupted
-  Why:   Conflict forces vessels to reroute, raising costs and transit times
-  Confidence: Medium  ← 3rd order effect
+Step 3 │ Logistics │ 3 days later (72h)
+  What:  Shipping route disruptions and rerouting costs surge
+  Why:   Vessels avoid conflict zone; insurance premiums spike; transit times +30%
+  Confidence: 51.75%  ← Degraded (3rd order, longer latency)
+  Verified:  ✓ Yes (SNN gate verified across geopolitics + logistics)
 
-Step 4 │ Finance │ 1 week later
-  What:  Insurance premiums spike
-  Why:   Insurers reprice risk exposure in affected shipping regions
-  Confidence: Medium  ← 3rd order effect
-
-Step 5 │ Economy │ 1 month later
-  What:  EU energy inflation re-accelerates
-  Why:   LNG spot prices rise as Red Sea disruption cuts supply routes to Europe
-  Confidence: Medium  ← 4th order effect
+Step 4 │ Finance + Economy │ 2-4 weeks later (336-672h)
+  What:  Emerging market currency weakness (TRY, NIS, EGP depreciate vs USD)
+  Why:   Higher freight costs → import inflation → central banks tighten →
+         capital flight to safe havens
+  Confidence: 18%  ← Low (4th order, multi-hop)
+  Verified:  ✗ No (SNN gate: no corroboration for EM currency specifics)
+             ⚠️  This is a structural signal, not a point prediction
 
 Key Insight:
-  The ECB declared victory on inflation in September 2023. One month later, a conflict
-  in Gaza restarted the energy price mechanism via a chain that ran through Houthi attacks
-  on shipping, Suez Canal disruption, and LNG prices. This showed up in European inflation
-  data in early 2024. The chain was traceable from day one — but only if you follow it
-  across 5 domains.
+  The chain successfully traces from immediate (conflict) through energy markets and
+  logistics to financial spillovers. Confidence degrades predictably (62.5% → 18%) as
+  the system moves further from the root event. By the 4th hop, the tool is honest
+  about its limits: it identifies the *mechanism* but flags when evidence doesn't
+  support specific outcomes. This is Tier 1+2 in action — transparency over false
+  precision.
 ```
 
 ---
