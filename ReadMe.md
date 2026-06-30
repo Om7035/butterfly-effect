@@ -238,6 +238,8 @@ butterfly-effect/
 
 ## Algorithms
 
+![The four core algorithms: entity extraction, confidence compounding, cycle detection, synthetic control](docs/assets/pipeline-animation.svg)
+
 ### Causal DAG construction — `causal/dag.py`
 
 Five domain templates validated against academic literature:
