@@ -138,6 +138,19 @@ def _evidence_to_nodes(evidence: list, event) -> tuple[list[dict], list[dict]]:
     new_nodes: list[dict] = []
     new_edges: list[dict] = []
 
+    def _is_document_metadata(text: str) -> bool:
+        """Filter out document/file metadata (PDFs, Word docs, etc)."""
+        metadata_patterns = [
+            "official documents",
+            "amendment",
+            "agreement for",
+            ".pdf", ".docx", ".xlsx",
+            "loan", "grant",
+            "project", "program",
+        ]
+        text_lower = text.lower()
+        return sum(1 for p in metadata_patterns if p in text_lower) >= 2
+
     try:
         # Get the startup-loaded spaCy model
         from butterfly.main import app as _app
@@ -156,6 +169,9 @@ def _evidence_to_nodes(evidence: list, event) -> tuple[list[dict], list[dict]]:
             text = (getattr(ev_item, "content", "") or getattr(ev_item, "title", ""))[:400]
             if not text or len(text) < 30:
                 continue
+            # Skip document metadata (World Bank PDFs, etc.)
+            if _is_document_metadata(text):
+                continue
 
             doc = nlp(text)
 
@@ -170,7 +186,11 @@ def _evidence_to_nodes(evidence: list, event) -> tuple[list[dict], list[dict]]:
                 if ent.label_ not in label_map:
                     continue
                 norm = normalize_entity_name(ent.text)
-                if norm.lower() in seen_labels or len(norm) < 3:
+                # Filter: skip very short, all-caps acronyms, or duplicate labels
+                if norm.lower() in seen_labels or len(norm) < 4:
+                    continue
+                # Skip obvious junk: partial words, weird spacing
+                if norm[0].islower() or "  " in norm or norm.count(" ") > 4:
                     continue
                 if len(new_nodes) >= 8:
                     break
