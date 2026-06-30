@@ -172,21 +172,7 @@ It works for any domain: economics, geopolitics, climate, technology, health, su
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A([Your Question]) --> B[LLM Parsing\ndomains and actors]
-    B --> C[Evidence Fetch\nWikipedia, FRED, DuckDuckGo\nWorld Bank, GDELT, ReliefWeb]
-    C --> D[Causal Graph\ndomain template plus evidence]
-    D --> E[Evidence-Based\nConfidence Updates]
-    E --> F[Parallel Simulation\nTimeline A vs Timeline B]
-    F --> G[Chain Extraction\nwith confidence breakdown]
-    G --> H([Causal Chain\nwith explainability])
-
-    style A fill:#1a1a2e,color:#e2e8f0,stroke:#7c3aed
-    style H fill:#1a1a2e,color:#e2e8f0,stroke:#34d399
-    style F fill:#0f172a,color:#a78bfa,stroke:#7c3aed
-    style E fill:#0f172a,color:#10b981,stroke:#34d399
-```
+![8-stage analysis pipeline: question input, LLM parsing, evidence fetch from 8 sources, causal graph construction, confidence updates, parallel simulation, chain extraction, and final causal chain output](docs/assets/how-it-works.svg)
 
 The key step is the **parallel simulation**: the system runs two versions of the world — one where your event happens, one where it doesn't — then compares them. The difference is the true causal impact at each point in time.
 
